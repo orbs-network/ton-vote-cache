@@ -13,7 +13,8 @@ export class Fetcher {
     private client!: TonClient;
     private client4!: TonClient4;
     private state: State;
-    private fetchUpdate: Number = Date.now();
+    private fetchUpdate: number = Date.now();
+    finished: boolean = true;
 
     constructor(state: State) {
         this.state = state;
@@ -39,65 +40,76 @@ export class Fetcher {
     async updateDaos() {
         
         const daoCatalog = this.state.getDaoCatalog()
+        console.log(`daoCatalog.nextDaoId = ${daoCatalog.nextDaoId}`);
+        
         let newDaos = await TonVoteSdk.getDaos(this.client, daoCatalog.nextDaoId, DAOS_BATCH_SIZE, 'asc');
         
         if (newDaos.daoAddresses.length == 0) return;
 
         console.log(`${newDaos.daoAddresses.length} new daos will be added: `, newDaos.daoAddresses);
 
-        newDaos.daoAddresses.forEach(async (daoAddress) => {
+        await Promise.all(newDaos.daoAddresses.map(async (daoAddress) => {
             const daoMetadata = await TonVoteSdk.getDaoMetadata(this.client, daoAddress);  
             const daoRoles = await TonVoteSdk.getDaoRoles(this.client, daoAddress);
-            const daoId = await TonVoteSdk.getDaoIndex(this.client, daoAddress);  
-
-            daoCatalog.daos[daoAddress] = {
-                daoId: daoId,
-                daoMetadata: daoMetadata,
-                roles: daoRoles,
-                proposalCatalog: {nextId: 0, proposals: {}}
-            };
-        });
+            const daoId = await TonVoteSdk.getDaoIndex(this.client, daoAddress);
+          
+            daoCatalog.daos.push({
+              address: daoAddress,
+              daoId: daoId,
+              daoMetadata: daoMetadata,
+              roles: daoRoles,
+              proposalCatalog: {nextId: 0, proposals: {}}
+            });            
+        }));
 
         daoCatalog.nextDaoId = newDaos.endDaoId;
-
-        this.state.setDaoCatalog(daoCatalog);
+        daoCatalog.daos.sort((a, b) => (a.daoId > b.daoId) ? 1 : -1);
+        console.log('after sort: ', daoCatalog.daos);
+        
+        this.state.setDaoCatalog(daoCatalog);          
     }
     
     async updateDaosProposals() {
 
-        const daoCatalog = this.state.getDaoCatalog()
+        const daoCatalog = this.state.getDaoCatalog();
 
-        Object.keys(daoCatalog.daos).forEach(async (daoAddress) => {
-            console.log(`fetching proposals for dao ${daoAddress}`);
+        await Promise.all(daoCatalog.daos.map(async (dao) => {
+            console.log(`fetching proposals for dao ${dao.address}`);
             
-            const newProposals = await TonVoteSdk.getDaoProposals(this.client, daoAddress, daoCatalog.daos[daoAddress].proposalCatalog.nextId, PROPOSALS_BATCH_SIZE, 'asc');
-
+            const newProposals = await TonVoteSdk.getDaoProposals(this.client, dao.address, dao.proposalCatalog.nextId, PROPOSALS_BATCH_SIZE, 'asc');
+        
             if (newProposals.proposalAddresses) {
-
-                console.log(`address ${daoAddress}: ${newProposals.proposalAddresses?.length} newProposals: `, newProposals);
-
-                newProposals.proposalAddresses.forEach(async (proposalAddress) => {
+        
+                console.log(`address ${dao.address}: ${newProposals.proposalAddresses?.length} newProposals: `, newProposals);
+        
+                await Promise.all(newProposals.proposalAddresses.map(async (proposalAddress) => {
                     console.log(`fetching info from proposal at address ${proposalAddress}`);                
-                    daoCatalog.daos[daoAddress].proposalCatalog.proposals[proposalAddress] = await TonVoteSdk.getProposalInfo(this.client, this.client4, proposalAddress);
-
-                });
-
-                daoCatalog.daos[daoAddress].proposalCatalog.nextId = newProposals.endProposalId;            
+                    dao.proposalCatalog.proposals[proposalAddress] = await TonVoteSdk.getProposalInfo(this.client, this.client4, proposalAddress);
+        
+                }));
+        
+                dao.proposalCatalog.nextId = newProposals.endProposalId;            
                 
             } else {
-                console.log(`no proposals found for dao ${daoAddress}`);
+                console.log(`no proposals found for dao ${dao.address}`);
             }
-
-        });
+        }));
 
         this.state.setDaoCatalog(daoCatalog);
+        
     }
 
     async run() {
 
+        if (!this.finished) return;
+
+        this.finished = false;
+
         this.updateDaos();
 
         this.updateDaosProposals();
+
+        this.finished = true;
 
         // const {txData, votingPower, proposalInfo} = this.state.getFullState();
 

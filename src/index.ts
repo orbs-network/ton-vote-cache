@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction} from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { errorString } from './helpers';
 import { TaskLoop } from './task-loop';
@@ -24,6 +24,15 @@ export function serve() {
 
   app.get('/daos', (_request, response) => {
     response.status(200).json(state.getDaoCatalog());
+  });
+
+  app.get('/daos/:startDaoId', (_request, response) => {
+    const { startDaoId } = _request.params;
+    response.status(200).json(state.getDaos(Number(startDaoId)));
+  });
+
+  app.get('/numDaos', (_request, response) => {
+    response.status(200).json(state.getNumDaos());
   });
 
   app.get('/registry', (_request, response) => {

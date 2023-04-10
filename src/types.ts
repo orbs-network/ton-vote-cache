@@ -38,11 +38,10 @@ export interface ProposalCatalog {
 export interface DaoCatalog {
     nextDaoId: number,
     daos: {
-        [address: string]: {
-            daoId: number,
-            daoMetadata: MetadataArgs, 
-            roles: DaoRoles, 
-            proposalCatalog: ProposalCatalog
-        }
-    }
+        address: string,
+        daoId: number,
+        daoMetadata: MetadataArgs, 
+        roles: DaoRoles, 
+        proposalCatalog: ProposalCatalog
+    }[]
 }

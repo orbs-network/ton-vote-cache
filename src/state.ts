@@ -2,6 +2,9 @@ import {TxData,VotingPower, Votes, ProposalResults, ProposalInfo, DaoCatalog} fr
 import * as Logger from './logger';
 
 
+const DAO_PAGINATION_SIZE = 10;
+
+
 export class State {
 
     private txData: TxData = {tx: [], toLt: undefined};
@@ -10,7 +13,7 @@ export class State {
     private proposalResults: ProposalResults | undefined;
     private proposalInfo: ProposalInfo | undefined;
     private updateTime: Number | undefined;
-    private daoCatalog: DaoCatalog = {nextDaoId: 0, daos: {}};
+    private daoCatalog: DaoCatalog = {nextDaoId: 0, daos: []};
     private registry!: string;
 
     getState() {
@@ -38,6 +41,28 @@ export class State {
 
     getDaoCatalog() {
         return this.daoCatalog
+    }
+
+    getDaos(startIndex: number) {
+        const daos = this.daoCatalog.daos.map(({ address, daoId, daoMetadata, roles }) => ({
+            address,
+            daoId,
+            daoMetadata,
+            roles
+        }));
+
+        if (startIndex >= daos.length) return [];
+        
+        const daosSlice = daos.slice(startIndex, Math.min(daos.length, startIndex + DAO_PAGINATION_SIZE))
+
+        return {
+            nextId: daosSlice[daosSlice.length - 1].daoId + 1, 
+            daos: daosSlice
+        };
+    }
+
+    getNumDaos() {
+        return this.daoCatalog.daos.length;
     }
 
     getRegistry() {
