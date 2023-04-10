@@ -1,8 +1,9 @@
-import {TxData,VotingPower, Votes, ProposalResults, ProposalInfo, DaoCatalog} from "./types";
+import {TxData,VotingPower, Votes, ProposalResults, ProposalInfo, DaoCatalog, ProposalCatalog} from "./types";
 import * as Logger from './logger';
 
 
-const DAO_PAGINATION_SIZE = 10;
+const DAO_PAGINATION_SIZE = 10; // TODO: FIXME increase pagination
+const PROPOSALS_PAGINATION_SIZE = 10; // TODO: FIXME increase pagination
 
 
 export class State {
@@ -14,6 +15,7 @@ export class State {
     private proposalInfo: ProposalInfo | undefined;
     private updateTime: Number | undefined;
     private daoCatalog: DaoCatalog = {nextDaoId: 0, daos: []};
+    private proposalCatalog: ProposalCatalog = {};
     private registry!: string;
 
     getState() {
@@ -43,13 +45,14 @@ export class State {
         return this.daoCatalog
     }
 
+    getProposalCatalog() {
+        return this.proposalCatalog;
+    }
+
+
     getDaos(startIndex: number) {
-        const daos = this.daoCatalog.daos.map(({ address, daoId, daoMetadata, roles }) => ({
-            address,
-            daoId,
-            daoMetadata,
-            roles
-        }));
+
+        const daos = this.daoCatalog.daos;
 
         if (startIndex >= daos.length) return [];
         
@@ -59,6 +62,24 @@ export class State {
             nextId: daosSlice[daosSlice.length - 1].daoId + 1, 
             daos: daosSlice
         };
+    }
+
+    getProposals(proposalAddress: string, startIndex: number) {
+        
+        if (!this.proposalCatalog[proposalAddress]) return [];
+
+        const proposals = this.proposalCatalog[proposalAddress].proposals;
+
+        if (!proposals) return [];
+        if (startIndex >= proposals.length) return [];
+        
+        const proposalsSlice = proposals.slice(startIndex, Math.min(proposals.length, startIndex + PROPOSALS_PAGINATION_SIZE))
+
+        return {
+            nextId: proposalsSlice[proposalsSlice.length - 1].metadata.id + 1, 
+            proposals: proposalsSlice
+        };
+
     }
 
     getNumDaos() {
@@ -95,6 +116,10 @@ export class State {
 
     setDaoCatalog(daoCatalog: DaoCatalog) {
         this.daoCatalog = {...daoCatalog};
+    }
+
+    setProposalCatalog(proposalCatalog: ProposalCatalog) {
+        this.proposalCatalog = {...proposalCatalog};
     }
 
     setState(txData: TxData, votingPower: VotingPower, votes: Votes, proposalResults: ProposalResults) {

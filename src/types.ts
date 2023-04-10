@@ -29,9 +29,9 @@ export interface ProposalInfo {
 }
 
 export interface ProposalCatalog {
-    nextId: number, 
-    proposals: {
-        [address: string]: ProposalMetadata
+    [daoAddress: string]: {
+        nextId: number, 
+        proposals: {proposalAddr: string, metadata: ProposalMetadata}[]
     }
 }
 
@@ -41,7 +41,6 @@ export interface DaoCatalog {
         address: string,
         daoId: number,
         daoMetadata: MetadataArgs, 
-        roles: DaoRoles, 
-        proposalCatalog: ProposalCatalog
+        roles: DaoRoles
     }[]
 }

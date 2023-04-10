@@ -35,6 +35,11 @@ export function serve() {
     response.status(200).json(state.getNumDaos());
   });
 
+  app.get('/proposals/:proposalAddress/:startProposalId', (_request, response) => {
+    const { proposalAddress, startProposalId } = _request.params;
+    response.status(200).json(state.getProposals(proposalAddress, Number(startProposalId)));
+  });
+
   app.get('/registry', (_request, response) => {
     response.status(200).json(state.getRegistry());
   });

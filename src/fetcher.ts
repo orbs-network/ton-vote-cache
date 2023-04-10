@@ -40,6 +40,8 @@ export class Fetcher {
     async updateDaos() {
         
         const daoCatalog = this.state.getDaoCatalog()
+        const proposalCatalog = this.state.getProposalCatalog()
+
         console.log(`daoCatalog.nextDaoId = ${daoCatalog.nextDaoId}`);
         
         let newDaos = await TonVoteSdk.getDaos(this.client, daoCatalog.nextDaoId, DAOS_BATCH_SIZE, 'asc');
@@ -58,50 +60,60 @@ export class Fetcher {
               daoId: daoId,
               daoMetadata: daoMetadata,
               roles: daoRoles,
-              proposalCatalog: {nextId: 0, proposals: {}}
-            });            
+            });
+            
+            proposalCatalog[daoAddress] = {nextId: 0, proposals: []}
+
         }));
 
         daoCatalog.nextDaoId = newDaos.endDaoId;
         daoCatalog.daos.sort((a, b) => (a.daoId > b.daoId) ? 1 : -1);
-        console.log('after sort: ', daoCatalog.daos);
-        
-        this.state.setDaoCatalog(daoCatalog);          
+
+        this.state.setDaoCatalog(daoCatalog); 
+        this.state.setProposalCatalog(proposalCatalog);
     }
     
     async updateDaosProposals() {
+        
+        const proposalCatalog = this.state.getProposalCatalog();
+        console.log(`updateDaosProposals: proposalCatalog=`, proposalCatalog);
 
-        const daoCatalog = this.state.getDaoCatalog();
-
-        await Promise.all(daoCatalog.daos.map(async (dao) => {
-            console.log(`fetching proposals for dao ${dao.address}`);
+        await Promise.all(Object.keys(proposalCatalog).map(async (daoAddress) => {
+            console.log(`fetching proposals for dao ${daoAddress}`);
             
-            const newProposals = await TonVoteSdk.getDaoProposals(this.client, dao.address, dao.proposalCatalog.nextId, PROPOSALS_BATCH_SIZE, 'asc');
+            const newProposals = await TonVoteSdk.getDaoProposals(this.client, daoAddress, proposalCatalog[daoAddress].nextId, PROPOSALS_BATCH_SIZE, 'asc');
         
             if (newProposals.proposalAddresses) {
         
-                console.log(`address ${dao.address}: ${newProposals.proposalAddresses?.length} newProposals: `, newProposals);
+                console.log(`address ${daoAddress}: ${newProposals.proposalAddresses?.length} newProposals: `, newProposals);
         
                 await Promise.all(newProposals.proposalAddresses.map(async (proposalAddress) => {
                     console.log(`fetching info from proposal at address ${proposalAddress}`);                
-                    dao.proposalCatalog.proposals[proposalAddress] = await TonVoteSdk.getProposalInfo(this.client, this.client4, proposalAddress);
+                    const proposalMetadata = await TonVoteSdk.getProposalInfo(this.client, this.client4, proposalAddress);
+                    proposalCatalog[daoAddress].proposals.push({
+                        proposalAddr: proposalAddress,
+                        metadata: proposalMetadata
+                    });
         
                 }));
         
-                dao.proposalCatalog.nextId = newProposals.endProposalId;            
+                proposalCatalog[daoAddress].nextId = newProposals.endProposalId;            
+                proposalCatalog[daoAddress].proposals.sort((a, b) => (a.metadata.id > b.metadata.id) ? 1 : -1);
                 
             } else {
-                console.log(`no proposals found for dao ${dao.address}`);
+                console.log(`no proposals found for dao ${daoAddress}`);
             }
         }));
 
-        this.state.setDaoCatalog(daoCatalog);
-        
+        this.state.setProposalCatalog(proposalCatalog);             
     }
 
     async run() {
 
-        if (!this.finished) return;
+        if (!this.finished) {
+            console.log('skipping run, still featching ...');            
+            return;
+        }
 
         this.finished = false;
 
