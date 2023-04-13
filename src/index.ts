@@ -36,9 +36,14 @@ export function serve() {
     response.status(200).json(state.getNumDaos());
   });
 
-  app.get('/proposals/:proposalAddress/:startProposalId', (_request, response) => {
-    const { proposalAddress, startProposalId } = _request.params;
-    response.status(200).json(state.getProposals(proposalAddress, Number(startProposalId)));
+  app.get('/proposals/:daoAddress/:startProposalId', (_request, response) => {
+    const { daoAddress, startProposalId } = _request.params;
+    response.status(200).json(state.getProposals(daoAddress, Number(startProposalId)));
+  });
+
+  app.get('/proposal/:daoAddress/:proposalAddress', (_request, response) => {
+    const { daoAddress, proposalAddress } = _request.params;
+    response.status(200).json(state.getProposal(daoAddress, proposalAddress));
   });
 
   app.get('/registry', (_request, response) => {

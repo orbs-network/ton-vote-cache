@@ -1,7 +1,7 @@
 import * as TonVoteSdk from "ton-vote-sdk";
 import { TonClient, TonClient4 } from "ton";
 import {State} from "./state";
-import { MetadataArgs, DaoRoles } from "ton-vote-sdk";
+import { MetadataArgs, DaoRoles, ProposalMetadata } from "ton-vote-sdk";
 
 // import {TxData, VotingPower, Votes, ProposalResults, ProposalInfo} from "./types";
 // import * as Logger from './logger';
@@ -64,7 +64,7 @@ export class Fetcher {
               daoRoles: daoRoles,
             });
             
-            proposalCatalog[daoAddress] = {nextId: 0, proposals: []}
+            proposalCatalog[daoAddress] = {nextId: 0, proposals: new Map()}
 
         }));
 
@@ -74,10 +74,7 @@ export class Fetcher {
             daoId: number,
             daoMetadata: MetadataArgs,
             daoRoles: DaoRoles
-        }>(
-            Array.from(daoCatalog.daos.entries())
-              .sort((a, b) => a[1].daoId - b[1].daoId)
-          );
+        }>(Array.from(daoCatalog.daos.entries()).sort((a, b) => a[1].daoId - b[1].daoId));
                 
         daoCatalog.daos = sortedDaos;
 
@@ -102,7 +99,7 @@ export class Fetcher {
                 await Promise.all(newProposals.proposalAddresses.map(async (proposalAddress) => {
                     console.log(`fetching info from proposal at address ${proposalAddress}`);                
                     const proposalMetadata = await TonVoteSdk.getProposalInfo(this.client, this.client4, proposalAddress);
-                    proposalCatalog[daoAddress].proposals.push({
+                    proposalCatalog[daoAddress].proposals.set(proposalAddress, {
                         proposalAddr: proposalAddress,
                         metadata: proposalMetadata
                     });
@@ -110,8 +107,15 @@ export class Fetcher {
                 }));
         
                 proposalCatalog[daoAddress].nextId = newProposals.endProposalId;            
-                proposalCatalog[daoAddress].proposals.sort((a, b) => (a.metadata.id > b.metadata.id) ? 1 : -1);
-                
+
+                const sortedProposals = new Map<string, {
+                    proposalAddr: string,
+                    metadata: ProposalMetadata,
+                }>(Array.from(proposalCatalog[daoAddress].proposals.entries()).sort((a, b) => a[1].metadata.id - b[1].metadata.id));
+                        
+                proposalCatalog[daoAddress].proposals = sortedProposals;
+        
+        
             } else {
                 console.log(`no proposals found for dao ${daoAddress}`);
             }

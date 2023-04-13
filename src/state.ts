@@ -69,7 +69,7 @@ export class State {
 
         const daos = this.daoCatalog.daos;
 
-        if (!daos.has(daoAddress)) return [];
+        if (!daos.has(daoAddress)) return {};
         return daos.get(daoAddress);
     }
 
@@ -80,15 +80,28 @@ export class State {
         const proposals = this.proposalCatalog[daoAddress].proposals;
 
         if (!proposals) return [];
-        if (startIndex >= proposals.length) return [];
+        if (startIndex >= proposals.size) return [];
 
-        const proposalsSlice = proposals.slice(startIndex, Math.min(proposals.length, startIndex + PROPOSALS_PAGINATION_SIZE))
+        const endIndex = Math.min(proposals.size, startIndex + PROPOSALS_PAGINATION_SIZE);
+        const proposalsSlice = Array.from(proposals.values()).slice(startIndex, endIndex);
 
         return {
-            nextId: proposalsSlice[proposalsSlice.length - 1].metadata.id + 1,
+            nextId: endIndex,
             proposals: proposalsSlice
         };
 
+    }
+
+    getProposal(daoAddress: string, proposalAddress: string) {
+
+        if (!this.proposalCatalog[daoAddress]) return {};
+        console.log('this.proposalCatalog[daoAddress]: ', this.proposalCatalog[daoAddress]);
+        
+        const proposals = this.proposalCatalog[daoAddress].proposals;
+
+        console.log('proposals.has(proposalAddress): ', proposals.has(proposalAddress));
+        if (!proposals.has(proposalAddress)) return {};
+        return proposals.get(proposalAddress);
     }
 
     getNumDaos() {

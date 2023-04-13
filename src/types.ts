@@ -31,7 +31,10 @@ export interface ProposalInfo {
 export interface ProposalCatalog {
     [daoAddress: string]: {
         nextId: number, 
-        proposals: {proposalAddr: string, metadata: ProposalMetadata}[]
+        proposals: Map<string, {
+            proposalAddr: string, 
+            metadata: ProposalMetadata
+        }>
     }
 }
 
