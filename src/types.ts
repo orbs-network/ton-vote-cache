@@ -1,11 +1,5 @@
-import { Transaction } from "ton";
-import { MetadataArgs, ProposalMetadata, DaoRoles, Votes, ProposalResult } from "ton-vote-sdk";
+import { MetadataArgs, ProposalMetadata, DaoRoles, Votes, ProposalResult, TxData } from "ton-vote-sdk";
 
-
-export interface TxData {
-    allTxns: Transaction [], 
-    maxLt: undefined | string
-};
 
 export interface VotingPower {
     [voter: string]: string

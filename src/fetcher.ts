@@ -155,6 +155,16 @@ export class Fetcher {
 
         await Promise.all([...this.proposalsByState.active].map(async (o) => {
             const proposalAddr = o.proposalAddr;
+
+            if (!proposalBundle[proposalAddr]) {
+                proposalBundle[proposalAddr] = {
+                    txData: {allTxns: [], maxLt: undefined},
+                    votingPower: {},
+                    votes: {},
+                    proposalResult: {yes: 0, no: 0, abstain: 0, totalWeight: '0'}
+                }
+            }
+
             const newTx = await TonVoteSdk.getTransactions(this.client, proposalAddr, proposalBundle[proposalAddr].txData.maxLt);
 
             console.log(`tx for ${proposalAddr}: `, newTx);

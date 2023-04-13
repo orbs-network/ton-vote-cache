@@ -1,5 +1,5 @@
-import { TxData, VotingPower, ProposalInfo, DaoCatalog, ProposalCatalog, ProposalBundle } from "./types";
-import { Votes, ProposalResult } from "ton-vote-sdk";
+import { VotingPower, ProposalInfo, DaoCatalog, ProposalCatalog, ProposalBundle } from "./types";
+import { TxData, Votes, ProposalResult } from "ton-vote-sdk";
 // import * as Logger from './logger';
 
 
@@ -59,7 +59,7 @@ export class State {
 
         const daos = this.daoCatalog.daos;
 
-        if (startIndex >= daos.size) return [];
+        if (startIndex >= daos.size) return {};
 
         const endIndex = Math.min(daos.size, startIndex + DAO_PAGINATION_SIZE);
         const daosSlice = Array.from(daos.values()).slice(startIndex, endIndex);
@@ -80,12 +80,12 @@ export class State {
 
     getProposals(daoAddress: string, startIndex: number) {
 
-        if (!this.proposalCatalog[daoAddress]) return [];
+        if (!this.proposalCatalog[daoAddress]) return {};
 
         const proposals = this.proposalCatalog[daoAddress].proposals;
 
-        if (!proposals) return [];
-        if (startIndex >= proposals.size) return [];
+        if (!proposals) return {};
+        if (startIndex >= proposals.size) return {};
 
         const endIndex = Math.min(proposals.size, startIndex + PROPOSALS_PAGINATION_SIZE);
         const proposalsSlice = Array.from(proposals.values()).slice(startIndex, endIndex);
