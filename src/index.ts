@@ -22,13 +22,14 @@ export function serve() {
     response.status(200).json(state.getState());
   });
 
-  app.get('/daos', (_request, response) => {
-    response.status(200).json(state.getDaoCatalog());
-  });
-
   app.get('/daos/:startDaoId', (_request, response) => {
     const { startDaoId } = _request.params;
     response.status(200).json(state.getDaos(Number(startDaoId)));
+  });
+
+  app.get('/dao/:daoAddress', (_request, response) => {
+    const { daoAddress } = _request.params;
+    response.status(200).json(state.getDaoByAddress(daoAddress));
   });
 
   app.get('/numDaos', (_request, response) => {

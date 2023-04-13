@@ -1,6 +1,8 @@
 import * as TonVoteSdk from "ton-vote-sdk";
 import { TonClient, TonClient4 } from "ton";
 import {State} from "./state";
+import { MetadataArgs, DaoRoles } from "ton-vote-sdk";
+
 // import {TxData, VotingPower, Votes, ProposalResults, ProposalInfo} from "./types";
 // import * as Logger from './logger';
 
@@ -55,11 +57,11 @@ export class Fetcher {
             const daoRoles = await TonVoteSdk.getDaoRoles(this.client, daoAddress);
             const daoId = await TonVoteSdk.getDaoIndex(this.client, daoAddress);
           
-            daoCatalog.daos.push({
-              address: daoAddress,
+            daoCatalog.daos.set(daoAddress, {
+              daoAddress: daoAddress,
               daoId: daoId,
               daoMetadata: daoMetadata,
-              roles: daoRoles,
+              daoRoles: daoRoles,
             });
             
             proposalCatalog[daoAddress] = {nextId: 0, proposals: []}
@@ -67,7 +69,17 @@ export class Fetcher {
         }));
 
         daoCatalog.nextDaoId = newDaos.endDaoId;
-        daoCatalog.daos.sort((a, b) => (a.daoId > b.daoId) ? 1 : -1);
+        const sortedDaos = new Map<string, {
+            daoAddress: string,
+            daoId: number,
+            daoMetadata: MetadataArgs,
+            daoRoles: DaoRoles
+        }>(
+            Array.from(daoCatalog.daos.entries())
+              .sort((a, b) => a[1].daoId - b[1].daoId)
+          );
+                
+        daoCatalog.daos = sortedDaos;
 
         this.state.setDaoCatalog(daoCatalog); 
         this.state.setProposalCatalog(proposalCatalog);
