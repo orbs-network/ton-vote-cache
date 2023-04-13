@@ -18,10 +18,6 @@ export function serve() {
   const state = new State();
   const fetcher = new Fetcher(state);
 
-  app.get('/state', (_request, response) => {
-    response.status(200).json(state.getState());
-  });
-
   app.get('/daos/:startDaoId', (_request, response) => {
     const { startDaoId } = _request.params;
     response.status(200).json(state.getDaos(Number(startDaoId)));
@@ -50,13 +46,20 @@ export function serve() {
     response.status(200).json(state.getRegistry());
   });
 
-  // app.get('/info', (_request, response) => {
-  //   response.status(200).json(state.getProposalInfo());
-  // });
+  app.get('/results/:proposalAddress', (_request, response) => {
+    const { proposalAddress } = _request.params;
+    response.status(200).json(state.getProposalResults(proposalAddress));
+  });
 
-  // app.get('/results', (_request, response) => {
-  //   response.status(200).json(state.getProposalResults());
-  // });
+  app.get('/votes/:proposalAddress', (_request, response) => {
+    const { proposalAddress } = _request.params;
+    response.status(200).json(state.getProposalVotes(proposalAddress));
+  });
+
+  app.get('/power/:proposalAddress', (_request, response) => {
+    const { proposalAddress } = _request.params;
+    response.status(200).json(state.getProposalVotingPower(proposalAddress));
+  });
 
   app.get('/stateUpdateTime', (_request, response) => {
     response.status(200).json(state.getStateUpdateTime());

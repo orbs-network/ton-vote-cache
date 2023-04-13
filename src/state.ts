@@ -107,6 +107,21 @@ export class State {
         return proposals.get(proposalAddress);
     }
 
+    getProposalResults(proposalAddress: string) {
+        if (!this.proposalBundle[proposalAddress]) return {};        
+        return this.proposalBundle[proposalAddress].proposalResult;
+    }
+
+    getProposalVotes(proposalAddress: string) {
+        if (!this.proposalBundle[proposalAddress]) return {};        
+        return this.proposalBundle[proposalAddress].votes;
+    }
+
+    getProposalVotingPower(proposalAddress: string) {
+        if (!this.proposalBundle[proposalAddress]) return {};        
+        return this.proposalBundle[proposalAddress].votingPower;
+    }
+
     getNumDaos() {
         return this.daoCatalog.daos.size;
     }

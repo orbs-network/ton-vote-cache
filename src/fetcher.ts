@@ -149,7 +149,7 @@ export class Fetcher {
         
     }
 
-    async updateProposalsResults() {
+    async updateProposalBundle() {
 
         const proposalBundle = this.state.getProposalBundle();
 
@@ -191,6 +191,8 @@ export class Fetcher {
         this.updateDaosProposals();
 
         this.updateProposalsState();
+
+        this.updateProposalBundle();
         
         this.finished = true;
 
