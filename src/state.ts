@@ -1,5 +1,6 @@
-import { TxData, VotingPower, Votes, ProposalResults, ProposalInfo, DaoCatalog, ProposalCatalog } from "./types";
-import * as Logger from './logger';
+import { TxData, VotingPower, ProposalInfo, DaoCatalog, ProposalCatalog, ProposalBundle } from "./types";
+import { Votes, ProposalResult } from "ton-vote-sdk";
+// import * as Logger from './logger';
 
 
 const DAO_PAGINATION_SIZE = 10; // TODO: FIXME increase pagination
@@ -8,10 +9,11 @@ const PROPOSALS_PAGINATION_SIZE = 10; // TODO: FIXME increase pagination
 
 export class State {
 
-    private txData: TxData = { tx: [], toLt: undefined };
+    private proposalBundle: ProposalBundle = {};
+    private txData: TxData = { allTxns: [], maxLt: undefined };
     private votingPower: VotingPower = {};
     private votes: Votes = {};
-    private proposalResults: ProposalResults | undefined;
+    private proposalResults: ProposalResult | undefined;
     private proposalInfo: ProposalInfo | undefined;
     private updateTime: Number | undefined;
     private daoCatalog: DaoCatalog = { nextDaoId: 0, daos: new Map() };
@@ -25,7 +27,7 @@ export class State {
             votes: this.votes,
             proposalResults: this.proposalResults,
             votingPower: this.votingPower,
-            maxLt: this.txData.toLt
+            maxLt: this.txData.maxLt
         }
     }
 
@@ -49,6 +51,9 @@ export class State {
         return this.proposalCatalog;
     }
 
+    getProposalBundle() {
+        return this.proposalBundle;
+    }
 
     getDaos(startIndex: number) {
 
@@ -95,11 +100,9 @@ export class State {
     getProposal(daoAddress: string, proposalAddress: string) {
 
         if (!this.proposalCatalog[daoAddress]) return {};
-        console.log('this.proposalCatalog[daoAddress]: ', this.proposalCatalog[daoAddress]);
         
         const proposals = this.proposalCatalog[daoAddress].proposals;
 
-        console.log('proposals.has(proposalAddress): ', proposals.has(proposalAddress));
         if (!proposals.has(proposalAddress)) return {};
         return proposals.get(proposalAddress);
     }
@@ -116,20 +119,8 @@ export class State {
         return this.updateTime;
     }
 
-    getProposalResults() {
-        return this.proposalResults;
-    }
-
-    getProposalInfo() {
-        return this.proposalInfo;
-    }
-
     getMaxLt() {
-        return this.txData.toLt;
-    }
-
-    setProposalInfo(proposalInfo: ProposalInfo) {
-        this.proposalInfo = proposalInfo;
+        return this.txData.maxLt;
     }
 
     setRegistry(registry: string) {
@@ -144,13 +135,10 @@ export class State {
         this.proposalCatalog = { ...proposalCatalog };
     }
 
-    setState(txData: TxData, votingPower: VotingPower, votes: Votes, proposalResults: ProposalResults) {
-        Logger.log(`updating state ...`);
-
-        this.txData = txData;
-        this.votingPower = votingPower;
-        this.votes = votes;
-        this.proposalResults = proposalResults;
-        this.updateTime = Date.now();
+    setProposalBundle(proposalAddr: string, newTx: TxData, newVotes: Votes, newVotingPower: VotingPower, newProposalResult: ProposalResult) {
+        this.proposalBundle[proposalAddr].txData = newTx;
+        this.proposalBundle[proposalAddr].votes = newVotes;
+        this.proposalBundle[proposalAddr].votingPower = newVotingPower;
+        this.proposalBundle[proposalAddr].proposalResult = newProposalResult;
     }
 }

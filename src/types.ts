@@ -1,22 +1,14 @@
-import { MetadataArgs, ProposalMetadata, DaoRoles } from "ton-vote-sdk";
+import { Transaction } from "ton";
+import { MetadataArgs, ProposalMetadata, DaoRoles, Votes, ProposalResult } from "ton-vote-sdk";
 
 
 export interface TxData {
-    tx: [], 
-    toLt: undefined | string
+    allTxns: Transaction [], 
+    maxLt: undefined | string
 };
 
 export interface VotingPower {
     [voter: string]: string
-}
-
-export interface Votes {
-    [voter: string]: {vote: string, timestamp: string}
-}
-
-export interface ProposalResults {
-    [key: number]: number,
-    totalPower: string
 }
 
 export interface ProposalInfo {
@@ -26,6 +18,32 @@ export interface ProposalInfo {
         snapshotTime: Number, 
         mcSnapshotBlock: Number
     }
+}
+
+export interface ProposalBundle {
+    [proposalAddress: string] : {
+        txData: TxData;
+        votingPower: VotingPower;
+        votes: Votes;
+        proposalResult: ProposalResult;
+    }
+}
+
+export type ProposalsByState = {
+    pending: Set<{
+        proposalAddr: string, 
+        metadata: ProposalMetadata
+    }>;
+    
+    active: Set<{
+        proposalAddr: string, 
+        metadata: ProposalMetadata
+    }>;
+    
+    ended: Set<{
+        proposalAddr: string, 
+        metadata: ProposalMetadata
+    }>;
 }
 
 export interface ProposalCatalog {

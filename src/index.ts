@@ -50,13 +50,13 @@ export function serve() {
     response.status(200).json(state.getRegistry());
   });
 
-  app.get('/info', (_request, response) => {
-    response.status(200).json(state.getProposalInfo());
-  });
+  // app.get('/info', (_request, response) => {
+  //   response.status(200).json(state.getProposalInfo());
+  // });
 
-  app.get('/results', (_request, response) => {
-    response.status(200).json(state.getProposalResults());
-  });
+  // app.get('/results', (_request, response) => {
+  //   response.status(200).json(state.getProposalResults());
+  // });
 
   app.get('/stateUpdateTime', (_request, response) => {
     response.status(200).json(state.getStateUpdateTime());

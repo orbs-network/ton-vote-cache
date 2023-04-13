@@ -2,6 +2,8 @@ import * as TonVoteSdk from "ton-vote-sdk";
 import { TonClient, TonClient4 } from "ton";
 import {State} from "./state";
 import { MetadataArgs, DaoRoles, ProposalMetadata } from "ton-vote-sdk";
+import {ProposalsByState} from "./types";
+
 
 // import {TxData, VotingPower, Votes, ProposalResults, ProposalInfo} from "./types";
 // import * as Logger from './logger';
@@ -17,6 +19,7 @@ export class Fetcher {
     private state: State;
     private fetchUpdate: number = Date.now();
     finished: boolean = true;
+    proposalsByState: ProposalsByState = {pending: new Set(), active: new Set(), ended: new Set()};
 
     constructor(state: State) {
         this.state = state;
@@ -30,7 +33,7 @@ export class Fetcher {
         console.log(this.state);
         console.log(this.client4);
 
-        // const proposalInfo = await TonVoteSdk.getProposalInfo(this.client, this.client4);
+        // const proposalInfo = await TonVoteSdk.getProposalMetadata(this.client, this.client4);
         // this.state.setProposalInfo(proposalInfo);
     }
 
@@ -91,19 +94,21 @@ export class Fetcher {
             console.log(`fetching proposals for dao ${daoAddress}`);
             
             const newProposals = await TonVoteSdk.getDaoProposals(this.client, daoAddress, proposalCatalog[daoAddress].nextId, PROPOSALS_BATCH_SIZE, 'asc');
-        
+            
             if (newProposals.proposalAddresses) {
         
                 console.log(`address ${daoAddress}: ${newProposals.proposalAddresses?.length} newProposals: `, newProposals);
         
                 await Promise.all(newProposals.proposalAddresses.map(async (proposalAddress) => {
                     console.log(`fetching info from proposal at address ${proposalAddress}`);                
-                    const proposalMetadata = await TonVoteSdk.getProposalInfo(this.client, this.client4, proposalAddress);
+                    const proposalMetadata = await TonVoteSdk.getProposalMetadata(this.client, this.client4, proposalAddress);
                     proposalCatalog[daoAddress].proposals.set(proposalAddress, {
                         proposalAddr: proposalAddress,
                         metadata: proposalMetadata
                     });
-        
+
+                    this.proposalsByState.pending = this.proposalsByState.pending.add(proposalCatalog[daoAddress].proposals.get(proposalAddress)!);
+
                 }));
         
                 proposalCatalog[daoAddress].nextId = newProposals.endProposalId;            
@@ -124,6 +129,54 @@ export class Fetcher {
         this.state.setProposalCatalog(proposalCatalog);             
     }
 
+    updateProposalsState() {
+
+        this.proposalsByState.pending.forEach(o => {
+            
+            if (o.metadata.proposalStartTime <= Date.now() && o.metadata.proposalEndTime >= Date.now()) {
+                this.proposalsByState.active.add(o);
+                this.proposalsByState.pending.delete(o);
+            }
+
+            if (o.metadata.proposalStartTime <= Date.now() && o.metadata.proposalEndTime <= Date.now()) {
+                this.proposalsByState.ended.add(o);
+                this.proposalsByState.pending.delete(o);
+            }
+
+        }); 
+
+        console.log(this.proposalsByState);
+        
+    }
+
+    async updateProposalsResults() {
+
+        const proposalBundle = this.state.getProposalBundle();
+
+        await Promise.all([...this.proposalsByState.active].map(async (o) => {
+            const proposalAddr = o.proposalAddr;
+            const newTx = await TonVoteSdk.getTransactions(this.client, proposalAddr, proposalBundle[proposalAddr].txData.maxLt);
+
+            console.log(`tx for ${proposalAddr}: `, newTx);
+            
+            if (newTx.maxLt == proposalBundle[proposalAddr].txData.maxLt) {
+                console.log(`Nothing to fetch for proposal at ${proposalAddr}`);
+                this.fetchUpdate = Date.now();
+                return;
+            }
+
+            newTx.allTxns = [...newTx.allTxns, ...proposalBundle[proposalAddr].txData.allTxns]
+            // TODO: getAllVotes - use only new tx not all of them
+            let newVotes = TonVoteSdk.getAllVotes(newTx.allTxns, o.metadata);
+            
+            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, o.metadata, newTx.allTxns, proposalBundle[proposalAddr].votingPower);
+            let newProposalResults = TonVoteSdk.getCurrentResults(newTx.allTxns, newVotingPower, o.metadata);
+
+            this.state.setProposalBundle(proposalAddr, newTx, newVotes, newVotingPower, newProposalResults);
+        }));
+          
+    }
+
     async run() {
 
         if (!this.finished) {
@@ -137,6 +190,8 @@ export class Fetcher {
 
         this.updateDaosProposals();
 
+        this.updateProposalsState();
+        
         this.finished = true;
 
         // const {txData, votingPower, proposalInfo} = this.state.getFullState();
