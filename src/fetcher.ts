@@ -131,16 +131,30 @@ export class Fetcher {
 
     updateProposalsState() {
 
+        const now = Date.now() / 1000;
+
         this.proposalsByState.pending.forEach(o => {
             
-            if (o.metadata.proposalStartTime <= Date.now() && o.metadata.proposalEndTime >= Date.now()) {
+            if (o.metadata.proposalStartTime <= now && o.metadata.proposalEndTime >= now) {                
                 this.proposalsByState.active.add(o);
                 this.proposalsByState.pending.delete(o);
+                console.log(`proposal ${o.metadata} was moved to active proposals`);
             }
 
-            if (o.metadata.proposalStartTime <= Date.now() && o.metadata.proposalEndTime <= Date.now()) {
+            else if (o.metadata.proposalStartTime <= now && o.metadata.proposalEndTime <= now) {
                 this.proposalsByState.ended.add(o);
                 this.proposalsByState.pending.delete(o);
+                console.log(`proposal ${o.metadata} was moved to ended proposals`);
+            }
+
+        }); 
+
+        this.proposalsByState.active.forEach(o => {
+            
+            if (o.metadata.proposalStartTime <= now && o.metadata.proposalEndTime <= now) {
+                this.proposalsByState.ended.add(o);
+                this.proposalsByState.pending.delete(o);
+                console.log(`proposal ${o.metadata} was moved to ended proposals`);
             }
 
         }); 
