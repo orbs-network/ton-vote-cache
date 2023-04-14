@@ -152,7 +152,8 @@ export class Fetcher {
     async updateProposalBundle() {
 
         const proposalBundle = this.state.getProposalBundle();
-
+        console.log('proposalBundle: ', proposalBundle);
+        
         await Promise.all([...this.proposalsByState.active].map(async (o) => {
             const proposalAddr = o.proposalAddr;
 
