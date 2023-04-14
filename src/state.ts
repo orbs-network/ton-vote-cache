@@ -122,6 +122,15 @@ export class State {
         return this.proposalBundle[proposalAddress].votingPower;
     }
 
+    getFullProposalData(proposalAddress: string) {
+        if (!this.proposalBundle[proposalAddress]) return {};        
+        return {
+            results: this.proposalBundle[proposalAddress].proposalResult,
+            votes: this.proposalBundle[proposalAddress].votes,
+            votingPower: this.proposalBundle[proposalAddress].votingPower
+        };
+    }
+
     getNumDaos() {
         return this.daoCatalog.daos.size;
     }

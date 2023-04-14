@@ -61,6 +61,11 @@ export function serve() {
     response.status(200).json(state.getProposalVotingPower(proposalAddress));
   });
 
+  app.get('/fullProposalData/:proposalAddress', (_request, response) => {
+    const { proposalAddress } = _request.params;
+    response.status(200).json(state.getProposalVotingPower(proposalAddress));
+  });
+
   app.get('/stateUpdateTime', (_request, response) => {
     response.status(200).json(state.getStateUpdateTime());
   });
