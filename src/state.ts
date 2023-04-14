@@ -1,4 +1,4 @@
-import { VotingPower, ProposalInfo, DaoCatalog, ProposalCatalog, ProposalBundle } from "./types";
+import { VotingPower, ProposalInfo, DaoCatalog, ProposalCatalog, proposalVotingData } from "./types";
 import { TxData, Votes, ProposalResult } from "ton-vote-sdk";
 // import * as Logger from './logger';
 
@@ -9,7 +9,7 @@ const PROPOSALS_PAGINATION_SIZE = 10; // TODO: FIXME increase pagination
 
 export class State {
 
-    private proposalBundle: ProposalBundle = {};
+    private proposalVotingData: proposalVotingData = {};
     private txData: TxData = { allTxns: [], maxLt: undefined };
     private votingPower: VotingPower = {};
     private votes: Votes = {};
@@ -51,8 +51,8 @@ export class State {
         return this.proposalCatalog;
     }
 
-    getProposalBundle() {
-        return this.proposalBundle;
+    getproposalVotingData() {
+        return this.proposalVotingData;
     }
 
     getDaos(startIndex: number) {
@@ -108,27 +108,31 @@ export class State {
     }
 
     getProposalResults(proposalAddress: string) {
-        if (!this.proposalBundle[proposalAddress]) return {};        
-        return this.proposalBundle[proposalAddress].proposalResult;
+        if (!this.proposalVotingData[proposalAddress]) return {};        
+        return this.proposalVotingData[proposalAddress].proposalResult;
     }
 
     getProposalVotes(proposalAddress: string) {
-        if (!this.proposalBundle[proposalAddress]) return {};        
-        return this.proposalBundle[proposalAddress].votes;
+        if (!this.proposalVotingData[proposalAddress]) return {};        
+        return this.proposalVotingData[proposalAddress].votes;
     }
 
     getProposalVotingPower(proposalAddress: string) {
-        if (!this.proposalBundle[proposalAddress]) return {};        
-        return this.proposalBundle[proposalAddress].votingPower;
+        if (!this.proposalVotingData[proposalAddress]) return {};        
+        return this.proposalVotingData[proposalAddress].votingPower;
     }
 
     getFullProposalData(proposalAddress: string) {
-        if (!this.proposalBundle[proposalAddress]) return {};        
-        return {
-            results: this.proposalBundle[proposalAddress].proposalResult,
-            votes: this.proposalBundle[proposalAddress].votes,
-            votingPower: this.proposalBundle[proposalAddress].votingPower
-        };
+        if (!this.proposalVotingData[proposalAddress]) return {};        
+        let x =  {
+            results: this.proposalVotingData[proposalAddress].proposalResult,
+            votes: this.proposalVotingData[proposalAddress].votes,
+            votingPower: this.proposalVotingData[proposalAddress].votingPower
+        }
+
+        console.log(x);
+        return x;
+        
     }
 
     getNumDaos() {
@@ -159,10 +163,10 @@ export class State {
         this.proposalCatalog = { ...proposalCatalog };
     }
 
-    setProposalBundle(proposalAddr: string, newTx: TxData, newVotes: Votes, newVotingPower: VotingPower, newProposalResult: ProposalResult) {
-        this.proposalBundle[proposalAddr].txData = newTx;
-        this.proposalBundle[proposalAddr].votes = newVotes;
-        this.proposalBundle[proposalAddr].votingPower = newVotingPower;
-        this.proposalBundle[proposalAddr].proposalResult = newProposalResult;
+    setproposalVotingData(proposalAddr: string, newTx: TxData, newVotes: Votes, newVotingPower: VotingPower, newProposalResult: ProposalResult) {
+        this.proposalVotingData[proposalAddr].txData = newTx;
+        this.proposalVotingData[proposalAddr].votes = newVotes;
+        this.proposalVotingData[proposalAddr].votingPower = newVotingPower;
+        this.proposalVotingData[proposalAddr].proposalResult = newProposalResult;
     }
 }

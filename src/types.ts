@@ -14,7 +14,7 @@ export interface ProposalInfo {
     }
 }
 
-export interface ProposalBundle {
+export interface proposalVotingData {
     [proposalAddress: string] : {
         txData: TxData;
         votingPower: VotingPower;

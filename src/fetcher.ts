@@ -165,14 +165,14 @@ export class Fetcher {
 
     async updateProposalBundle() {
 
-        const proposalBundle = this.state.getProposalBundle();
-        console.log('proposalBundle: ', proposalBundle);
+        const proposalVotingData = this.state.getproposalVotingData();
+        console.log('proposalVotingData: ', proposalVotingData);
         
         await Promise.all([...this.proposalsByState.active].map(async (o) => {
             const proposalAddr = o.proposalAddr;
 
-            if (!proposalBundle[proposalAddr]) {
-                proposalBundle[proposalAddr] = {
+            if (!proposalVotingData[proposalAddr]) {
+                proposalVotingData[proposalAddr] = {
                     txData: {allTxns: [], maxLt: undefined},
                     votingPower: {},
                     votes: {},
@@ -180,24 +180,24 @@ export class Fetcher {
                 }
             }
 
-            const newTx = await TonVoteSdk.getTransactions(this.client, proposalAddr, proposalBundle[proposalAddr].txData.maxLt);
+            const newTx = await TonVoteSdk.getTransactions(this.client, proposalAddr, proposalVotingData[proposalAddr].txData.maxLt);
 
             console.log(`tx for ${proposalAddr}: `, newTx);
             
-            if (newTx.maxLt == proposalBundle[proposalAddr].txData.maxLt) {
+            if (newTx.maxLt == proposalVotingData[proposalAddr].txData.maxLt) {
                 console.log(`Nothing to fetch for proposal at ${proposalAddr}`);
                 this.fetchUpdate = Date.now();
                 return;
             }
 
-            newTx.allTxns = [...newTx.allTxns, ...proposalBundle[proposalAddr].txData.allTxns]
+            newTx.allTxns = [...newTx.allTxns, ...proposalVotingData[proposalAddr].txData.allTxns]
             // TODO: getAllVotes - use only new tx not all of them
             let newVotes = TonVoteSdk.getAllVotes(newTx.allTxns, o.metadata);
             
-            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, o.metadata, newTx.allTxns, proposalBundle[proposalAddr].votingPower);
+            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, o.metadata, newTx.allTxns, proposalVotingData[proposalAddr].votingPower);
             let newProposalResults = TonVoteSdk.getCurrentResults(newTx.allTxns, newVotingPower, o.metadata);
 
-            this.state.setProposalBundle(proposalAddr, newTx, newVotes, newVotingPower, newProposalResults);
+            this.state.setproposalVotingData(proposalAddr, newTx, newVotes, newVotingPower, newProposalResults);
         }));
           
     }
@@ -220,49 +220,9 @@ export class Fetcher {
         this.updateProposalBundle();
         
         this.finished = true;
-
-        // const {txData, votingPower, proposalInfo} = this.state.getFullState();
-
-        // let newTxData = await this.getTransactions(txData);
-        
-        // if (newTxData.toLt == txData.toLt) {
-        //     Logger.log(`Nothing to fetch`);
-        //     this.fetchUpdate = Date.now();
-        //     return;
-        // }
-
-        // if (proposalInfo == undefined) throw Error('proposalInfo was not updated');
-
-        // let newVotes = this.getAllVotes(proposalInfo, newTxData.tx);
-        
-        // let newVotingPower = await this.getVotingPower(proposalInfo, newTxData.tx, votingPower);
-        // let newProposalResults = await this.getCurrentResults(proposalInfo, newTxData.tx, newVotingPower);
-
-        // this.state.setState(newTxData, newVotingPower, newVotes, newProposalResults);
-        // this.fetchUpdate = Date.now();
     }
 
     getFetchUpdateTime() {
         return this.fetchUpdate;
     }
-
-    // async getTransactions(txData: TxData) : Promise<{ tx: any; toLt: string; }> {
-    //     let res = await TonVoteSdk.getTransactions(this.client, txData.toLt);
-    //     return {
-    //         tx: [...res.allTxns, ...txData.tx], 
-    //         toLt: res.maxLt
-    //     } ;
-    // }
-   
-    // getAllVotes(proposalInfo: ProposalInfo, transactions: []): Votes {
-    //     return TonVoteSdk.getAllVotes(transactions, proposalInfo) as Votes;
-    // }
-    
-    // async getVotingPower(proposalInfo: ProposalInfo, transactions: [], votingPower: VotingPower): Promise<VotingPower> {
-    //     return TonVoteSdk.getVotingPower(this.client4, proposalInfo, transactions, votingPower);
-    // }
-    
-    // async getCurrentResults(proposalInfo: ProposalInfo, transactions: [], votingPower: VotingPower) : Promise<ProposalResults>{
-    //     return TonVoteSdk.getCurrentResults(transactions, votingPower, proposalInfo)
-    // }
 }
