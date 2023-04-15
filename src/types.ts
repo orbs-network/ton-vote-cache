@@ -14,48 +14,34 @@ export interface ProposalInfo {
     }
 }
 
-export interface proposalVotingData {
-    [proposalAddress: string] : {
-        txData: TxData;
-        votingPower: VotingPower;
-        votes: Votes;
-        proposalResult: ProposalResult;
-    }
+export type ProposalVotingData = {
+    txData: TxData;
+    votingPower: VotingPower;
+    votes: Votes;
+    proposalResult: ProposalResult;
 }
 
 export type ProposalsByState = {
-    pending: Set<{
-        proposalAddr: string, 
-        metadata: ProposalMetadata
-    }>;
-    
-    active: Set<{
-        proposalAddr: string, 
-        metadata: ProposalMetadata
-    }>;
-    
-    ended: Set<{
-        proposalAddr: string, 
-        metadata: ProposalMetadata
-    }>;
+    pending: Set<string>;    
+    active: Set<string>;
+    ended: Set<string>;
 }
 
-export interface ProposalCatalog {
-    [daoAddress: string]: {
-        nextId: number, 
-        proposals: Map<string, {
-            proposalAddr: string, 
-            metadata: ProposalMetadata
-        }>
-    }
-}
+export type ProposalsData = Map<string, {
+        daoAddress: string,
+        proposalAddress: string, 
+        metadata: ProposalMetadata,
+        votingData?: ProposalVotingData
+}>
 
-export interface DaoCatalog {
+export interface DaosData {
     nextDaoId: number,
     daos: Map<string, {
         daoAddress: string,
         daoId: number,
         daoMetadata: MetadataArgs,
-        daoRoles: DaoRoles
+        daoRoles: DaoRoles,
+        nextProposalId: number, 
+        daoProposals: string[]
     }>
 }

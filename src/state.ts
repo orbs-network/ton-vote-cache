@@ -1,63 +1,29 @@
-import { VotingPower, ProposalInfo, DaoCatalog, ProposalCatalog, proposalVotingData } from "./types";
-import { TxData, Votes, ProposalResult } from "ton-vote-sdk";
+import { DaosData, ProposalsData, ProposalVotingData } from "./types";
+import { ProposalMetadata } from "ton-vote-sdk";
 // import * as Logger from './logger';
 
 
 const DAO_PAGINATION_SIZE = 10; // TODO: FIXME increase pagination
-const PROPOSALS_PAGINATION_SIZE = 10; // TODO: FIXME increase pagination
 
 
 export class State {
 
-    private proposalVotingData: proposalVotingData = {};
-    private txData: TxData = { allTxns: [], maxLt: undefined };
-    private votingPower: VotingPower = {};
-    private votes: Votes = {};
-    private proposalResults: ProposalResult | undefined;
-    private proposalInfo: ProposalInfo | undefined;
     private updateTime: Number | undefined;
-    private daoCatalog: DaoCatalog = { nextDaoId: 0, daos: new Map() };
-    private proposalCatalog: ProposalCatalog = {};
+    private daosData: DaosData = { nextDaoId: 0, daos: new Map() };
+    private proposalsData: ProposalsData = new Map();
     private registry!: string;
 
-    getState() {
-
-        return {
-            daoCatalog: this.daoCatalog,
-            votes: this.votes,
-            proposalResults: this.proposalResults,
-            votingPower: this.votingPower,
-            maxLt: this.txData.maxLt
-        }
+    getDaosData() {
+        return this.daosData
     }
 
-    getFullState() {
-
-        return {
-            txData: this.txData,
-            votingPower: this.votingPower,
-            votes: this.votes,
-            proposalResults: this.proposalResults,
-            proposalInfo: this.proposalInfo,
-            updateTime: this.updateTime
-        }
-    }
-
-    getDaoCatalog() {
-        return this.daoCatalog
-    }
-
-    getProposalCatalog() {
-        return this.proposalCatalog;
-    }
-
-    getproposalVotingData() {
-        return this.proposalVotingData;
+    getProposalsData() {
+        return this.proposalsData;
     }
 
     getDaos(startIndex: number) {
 
-        const daos = this.daoCatalog.daos;
+        const daos = this.daosData.daos;
 
         if (startIndex >= daos.size) return {};
 
@@ -72,71 +38,35 @@ export class State {
 
     getDaoByAddress(daoAddress: string) {
 
-        const daos = this.daoCatalog.daos;
+        const daos = this.daosData.daos;
 
         if (!daos.has(daoAddress)) return {};
         return daos.get(daoAddress);
     }
 
-    getProposals(daoAddress: string, startIndex: number) {
+    getProposal(proposalAddress: string) {
 
-        if (!this.proposalCatalog[daoAddress]) return {};
-
-        const proposals = this.proposalCatalog[daoAddress].proposals;
-
-        if (!proposals) return {};
-        if (startIndex >= proposals.size) return {};
-
-        const endIndex = Math.min(proposals.size, startIndex + PROPOSALS_PAGINATION_SIZE);
-        const proposalsSlice = Array.from(proposals.values()).slice(startIndex, endIndex);
-
-        return {
-            nextId: endIndex,
-            proposals: proposalsSlice
-        };
-
-    }
-
-    getProposal(daoAddress: string, proposalAddress: string) {
-
-        if (!this.proposalCatalog[daoAddress]) return {};
+        const proposal = this.proposalsData.get(proposalAddress);
+        if (!proposal) return {};
+        console.log(proposal);
         
-        const proposals = this.proposalCatalog[daoAddress].proposals;
-
-        if (!proposals.has(proposalAddress)) return {};
-        return proposals.get(proposalAddress);
-    }
-
-    getProposalResults(proposalAddress: string) {
-        if (!this.proposalVotingData[proposalAddress]) return {};        
-        return this.proposalVotingData[proposalAddress].proposalResult;
-    }
-
-    getProposalVotes(proposalAddress: string) {
-        if (!this.proposalVotingData[proposalAddress]) return {};        
-        return this.proposalVotingData[proposalAddress].votes;
-    }
-
-    getProposalVotingPower(proposalAddress: string) {
-        if (!this.proposalVotingData[proposalAddress]) return {};        
-        return this.proposalVotingData[proposalAddress].votingPower;
-    }
-
-    getFullProposalData(proposalAddress: string) {
-        if (!this.proposalVotingData[proposalAddress]) return {};        
-        let x =  {
-            results: this.proposalVotingData[proposalAddress].proposalResult,
-            votes: this.proposalVotingData[proposalAddress].votes,
-            votingPower: this.proposalVotingData[proposalAddress].votingPower
+        return proposal.votingData ? {
+            daoAddress: proposal.daoAddress,
+            metadata: proposal.metadata,
+            votingPower: proposal.votingData.votingPower,
+            votes: proposal.votingData.votes,
+            proposalResult: proposal.votingData.proposalResult
+        } : {
+            daoAddress: proposal.daoAddress,
+            metadata: proposal.metadata,
+            votingPower: {},
+            votes: {},
+            proposalResult: {}
         }
-
-        console.log(x);
-        return x;
-        
     }
 
     getNumDaos() {
-        return this.daoCatalog.daos.size;
+        return this.daosData.daos.size;
     }
 
     getRegistry() {
@@ -148,25 +78,28 @@ export class State {
     }
 
     getMaxLt() {
-        return this.txData.maxLt;
+        return 0 //this.txData.maxLt;
     }
 
     setRegistry(registry: string) {
         this.registry = registry;
     }
 
-    setDaoCatalog(daoCatalog: DaoCatalog) {
-        this.daoCatalog = { ...daoCatalog };
+    setDaosData(daosData: DaosData) {
+        this.daosData = { ...daosData };
     }
 
-    setProposalCatalog(proposalCatalog: ProposalCatalog) {
-        this.proposalCatalog = { ...proposalCatalog };
+    setProposalData(proposalAddress: string, proposalData: {
+        daoAddress: string,
+        proposalAddress: string, 
+        metadata: ProposalMetadata,
+        votingData?: ProposalVotingData}) {
+
+        this.proposalsData.set(proposalAddress, proposalData);
     }
 
-    setproposalVotingData(proposalAddr: string, newTx: TxData, newVotes: Votes, newVotingPower: VotingPower, newProposalResult: ProposalResult) {
-        this.proposalVotingData[proposalAddr].txData = newTx;
-        this.proposalVotingData[proposalAddr].votes = newVotes;
-        this.proposalVotingData[proposalAddr].votingPower = newVotingPower;
-        this.proposalVotingData[proposalAddr].proposalResult = newProposalResult;
+    setProposalsData(proposalsData: ProposalsData) {
+        this.proposalsData = proposalsData;
     }
+
 }

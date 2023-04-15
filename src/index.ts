@@ -32,39 +32,34 @@ export function serve() {
     response.status(200).json(state.getNumDaos());
   });
 
-  app.get('/proposals/:daoAddress/:startProposalId', (_request, response) => {
-    const { daoAddress, startProposalId } = _request.params;
-    response.status(200).json(state.getProposals(daoAddress, Number(startProposalId)));
-  });
-
-  app.get('/proposal/:daoAddress/:proposalAddress', (_request, response) => {
-    const { daoAddress, proposalAddress } = _request.params;
-    response.status(200).json(state.getProposal(daoAddress, proposalAddress));
+  app.get('/proposal/:proposalAddress', (_request, response) => {
+    const { proposalAddress } = _request.params;
+    response.status(200).json(state.getProposal(proposalAddress));
   });
 
   app.get('/registry', (_request, response) => {
     response.status(200).json(state.getRegistry());
   });
 
-  app.get('/results/:proposalAddress', (_request, response) => {
-    const { proposalAddress } = _request.params;
-    response.status(200).json(state.getProposalResults(proposalAddress));
-  });
+  // app.get('/results/:proposalAddress', (_request, response) => {
+  //   const { proposalAddress } = _request.params;
+  //   response.status(200).json(state.getProposalResults(proposalAddress));
+  // });
 
-  app.get('/votes/:proposalAddress', (_request, response) => {
-    const { proposalAddress } = _request.params;
-    response.status(200).json(state.getProposalVotes(proposalAddress));
-  });
+  // app.get('/votes/:proposalAddress', (_request, response) => {
+  //   const { proposalAddress } = _request.params;
+  //   response.status(200).json(state.getProposalVotes(proposalAddress));
+  // });
 
-  app.get('/power/:proposalAddress', (_request, response) => {
-    const { proposalAddress } = _request.params;
-    response.status(200).json(state.getProposalVotingPower(proposalAddress));
-  });
+  // app.get('/power/:proposalAddress', (_request, response) => {
+  //   const { proposalAddress } = _request.params;
+  //   response.status(200).json(state.getProposalVotingPower(proposalAddress));
+  // });
 
-  app.get('/fullProposalData/:proposalAddress', (_request, response) => {
-    const { proposalAddress } = _request.params;
-    response.status(200).json(state.getFullProposalData(proposalAddress));
-  });
+  // app.get('/fullProposalData/:proposalAddress', (_request, response) => {
+  //   const { proposalAddress } = _request.params;
+  //   response.status(200).json(state.getFullProposalData(proposalAddress));
+  // });
 
   app.get('/stateUpdateTime', (_request, response) => {
     response.status(200).json(state.getStateUpdateTime());
