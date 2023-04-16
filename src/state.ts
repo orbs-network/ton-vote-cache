@@ -21,19 +21,14 @@ export class State {
         return this.proposalsData;
     }
 
-    getDaos(startIndex: number) {
+    getDaos() {
 
         const daos = this.daosData.daos;
 
-        if (startIndex >= daos.size) return {};
+        if (daos.size == 0) return {};
 
-        const endIndex = Math.min(daos.size, startIndex + DAO_PAGINATION_SIZE);
-        const daosSlice = Array.from(daos.values()).slice(startIndex, endIndex);
-
-        return {
-            nextId: endIndex,
-            daos: daosSlice.reverse()
-        };
+        const daosSlice = Array.from(daos.values()).slice(0, daos.size);
+        return daosSlice.reverse()
     }
 
     getDaoByAddress(daoAddress: string) {

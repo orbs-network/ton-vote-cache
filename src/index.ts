@@ -18,9 +18,8 @@ export function serve() {
   const state = new State();
   const fetcher = new Fetcher(state);
 
-  app.get('/daos/:startDaoId', (_request, response) => {
-    const { startDaoId } = _request.params;
-    response.status(200).json(state.getDaos(Number(startDaoId)));
+  app.get('/daos', (_request, response) => {
+    response.status(200).json(state.getDaos());
   });
 
   app.get('/dao/:daoAddress', (_request, response) => {
