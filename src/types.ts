@@ -5,15 +5,6 @@ export interface VotingPower {
     [voter: string]: string
 }
 
-export interface ProposalInfo {
-    startTime: Number,
-    endTime: Number,
-    snapshot: {
-        snapshotTime: Number, 
-        mcSnapshotBlock: Number
-    }
-}
-
 export type ProposalVotingData = {
     txData: TxData;
     votingPower: VotingPower;
