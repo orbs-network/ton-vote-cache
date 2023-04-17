@@ -202,14 +202,14 @@ export class Fetcher {
 
             const newTx = await TonVoteSdk.getTransactions(this.client, proposalAddr, proposalVotingData.txData.maxLt);
 
-            console.log(`tx for ${proposalAddr}: `, newTx);
+            // console.log(`tx for ${proposalAddr}: `, newTx);
             
             if (newTx.maxLt == proposalVotingData.txData.maxLt) {
                 console.log(`Nothing to fetch for proposal at ${proposalAddr}`);
                 this.fetchUpdate = Date.now();
                 return;
             }
-
+            
             newTx.allTxns = [...newTx.allTxns, ...proposalVotingData.txData.allTxns]
             // TODO: getAllVotes - use only new tx not all of them
             let newVotes = TonVoteSdk.getAllVotes(newTx.allTxns, proposalData.metadata);
@@ -225,6 +225,8 @@ export class Fetcher {
             proposalData.votingData = proposalVotingData;
             proposalsData.set(proposalAddr, proposalData!);
 
+            console.log('setting new proposalData: ', proposalData);
+            
             this.state.setProposalData(proposalAddr, proposalData);
         }));
           

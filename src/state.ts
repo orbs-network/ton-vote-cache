@@ -3,9 +3,6 @@ import { ProposalMetadata } from "ton-vote-sdk";
 // import * as Logger from './logger';
 
 
-const DAO_PAGINATION_SIZE = 1000; // TODO: FIXME increase pagination
-
-
 export class State {
 
     private updateTime: Number | undefined;
