@@ -40,28 +40,8 @@ export function serve() {
     response.status(200).json(state.getRegistry());
   });
 
-  // app.get('/results/:proposalAddress', (_request, response) => {
-  //   const { proposalAddress } = _request.params;
-  //   response.status(200).json(state.getProposalResults(proposalAddress));
-  // });
-
-  // app.get('/votes/:proposalAddress', (_request, response) => {
-  //   const { proposalAddress } = _request.params;
-  //   response.status(200).json(state.getProposalVotes(proposalAddress));
-  // });
-
-  // app.get('/power/:proposalAddress', (_request, response) => {
-  //   const { proposalAddress } = _request.params;
-  //   response.status(200).json(state.getProposalVotingPower(proposalAddress));
-  // });
-
-  // app.get('/fullProposalData/:proposalAddress', (_request, response) => {
-  //   const { proposalAddress } = _request.params;
-  //   response.status(200).json(state.getFullProposalData(proposalAddress));
-  // });
-
-  app.get('/stateUpdateTime', (_request, response) => {
-    response.status(200).json(state.getStateUpdateTime());
+  app.get('/updateTime', (_request, response) => {
+    response.status(200).json(state.getUpdateTime());
   });
 
   app.get('/fetchUpdateTime', (_request, response) => {

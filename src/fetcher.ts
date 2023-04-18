@@ -250,6 +250,7 @@ export class Fetcher {
         this.updateProposalVotingData();
         
         this.finished = true;
+        this.state.setUpdateTime()
     }
 
     getFetchUpdateTime() {

@@ -65,7 +65,7 @@ export class State {
         return this.registry;
     }
 
-    getStateUpdateTime() {
+    getUpdateTime() {
         return this.updateTime;
     }
 
@@ -92,6 +92,10 @@ export class State {
 
     setProposalsData(proposalsData: ProposalsData) {
         this.proposalsData = proposalsData;
+    }
+
+    setUpdateTime() {
+        return this.updateTime = Date.now();
     }
 
 }

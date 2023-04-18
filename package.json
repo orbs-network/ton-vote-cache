@@ -1,5 +1,5 @@
 {
-  "name": "dao-vote-server",
+  "name": "ton-vote-server",
   "private": false,
   "version": "0.0.0",
   "homepage": "https://ton.vote/",
@@ -31,7 +31,7 @@
     "@types/compression": "^1.7.2",
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.16",
-    "ton-vote-sdk": "^3.1.0"
+    "ton-vote-sdk": "^3.3.3"
   },
   "engines": {
     "node": "16.x"
