@@ -251,25 +251,33 @@ export class Fetcher {
 
     async run() {
 
-        if (!this.finished) {
-            console.log('skipping run, still featching ...');            
-            return;
+        try {
+
+            if (!this.finished) {
+                console.log('skipping run, still featching ...');            
+                return;
+            }
+
+            this.finished = false;
+
+            await this.updateDaos();
+
+            await this.updateDaosProposals();
+
+            this.updateProposalsState();
+
+            await this.updatePendingProposalData();
+
+            await this.updateProposalVotingData();
+            
+            this.finished = true;
+            this.state.setUpdateTime()
+
+        } catch (error) {
+
+            this.finished = true;            
+            console.log('unexpected error: ', (error as Error).stack);
         }
-
-        this.finished = false;
-
-        await this.updateDaos();
-
-        await this.updateDaosProposals();
-
-        this.updateProposalsState();
-
-        await this.updatePendingProposalData();
-
-        await this.updateProposalVotingData();
-        
-        this.finished = true;
-        this.state.setUpdateTime()
     }
 
     getFetchUpdateTime() {
