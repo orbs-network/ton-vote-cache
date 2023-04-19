@@ -1,4 +1,4 @@
-import { DaosData, ProposalsData, ProposalVotingData } from "./types";
+import { DaosData, NftHolders, ProposalsData, ProposalVotingData, ProposalAddrWithMissingNftCollection } from "./types";
 import { ProposalMetadata } from "ton-vote-sdk";
 // import * as Logger from './logger';
 
@@ -8,7 +8,9 @@ export class State {
     private updateTime: Number | undefined;
     private daosData: DaosData = { nextDaoId: 0, daos: new Map() };
     private proposalsData: ProposalsData = new Map();
+    private nftHolders: NftHolders = {};
     private registry!: string;
+    private proposalAddrWithMissingNftCollection: ProposalAddrWithMissingNftCollection = new Set();
 
     getDaosData() {
         return this.daosData
@@ -16,6 +18,14 @@ export class State {
 
     getProposalsData() {
         return this.proposalsData;
+    }
+
+    getNftHolders() {
+        return this.nftHolders;
+    }
+
+    getProposalAddrWithMissingNftCollection() {
+        return this.proposalAddrWithMissingNftCollection;
     }
 
     getDaos() {
@@ -40,7 +50,6 @@ export class State {
 
         const proposal = this.proposalsData.get(proposalAddress);
         if (!proposal) return {};
-        console.log(proposal);
         
         return proposal.votingData ? {
             daoAddress: proposal.daoAddress,
@@ -57,6 +66,14 @@ export class State {
         }
     }
 
+    getMaxLt(proposalAddress: string) {
+
+        const proposal = this.proposalsData.get(proposalAddress);
+        if (!proposal) return {};
+        
+        return proposal.votingData?.txData.maxLt
+    }
+
     getNumDaos() {
         return this.daosData.daos.size;
     }
@@ -67,10 +84,6 @@ export class State {
 
     getUpdateTime() {
         return this.updateTime;
-    }
-
-    getMaxLt() {
-        return 0 //this.txData.maxLt;
     }
 
     setRegistry(registry: string) {
@@ -90,12 +103,24 @@ export class State {
         this.proposalsData.set(proposalAddress, proposalData);
     }
 
+    setNftHolders(nftCollectionAddress: string, nftHolders: Set<string>) {
+        this.nftHolders[nftCollectionAddress] = nftHolders;
+    }
+
     setProposalsData(proposalsData: ProposalsData) {
         this.proposalsData = proposalsData;
     }
 
     setUpdateTime() {
         return this.updateTime = Date.now();
+    }
+
+    addProposalAddrToMissingNftCollection(proposalAddress: string) {
+        this.proposalAddrWithMissingNftCollection.add(proposalAddress);
+    }
+
+    deleteProposalAddrFromMissingNftCollection(proposalAddress: string) {
+        this.proposalAddrWithMissingNftCollection.delete(proposalAddress);
     }
 
 }

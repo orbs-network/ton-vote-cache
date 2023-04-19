@@ -36,6 +36,15 @@ export function serve() {
     response.status(200).json(state.getProposal(proposalAddress));
   });
 
+  app.get('/maxLt/:proposalAddress', (_request, response) => {
+    const { proposalAddress } = _request.params;
+    response.status(200).json(state.getMaxLt(proposalAddress));
+  });
+
+  app.get('/proposalAddrWithMissingNftCollection', (_request, response) => {
+    response.status(200).json(state.getProposalAddrWithMissingNftCollection());
+  });
+
   app.get('/registry', (_request, response) => {
     response.status(200).json(state.getRegistry());
   });
@@ -46,10 +55,6 @@ export function serve() {
 
   app.get('/fetchUpdateTime', (_request, response) => {
     response.status(200).json(fetcher.getFetchUpdateTime());
-  });
-
-  app.get('/maxLt', (_request, response) => {
-    response.status(200).json(state.getMaxLt());
   });
 
   app.use((error: Error, req: Request, res: Response, next: NextFunction) => {

@@ -30,11 +30,6 @@ export class Fetcher {
         this.client4 = await TonVoteSdk.getClientV4();
 
         await this.updateRegistry();
-        console.log(this.state);
-        console.log(this.client4);
-
-        // const proposalInfo = await TonVoteSdk.getProposalMetadata(this.client, this.client4);
-        // this.state.setProposalInfo(proposalInfo);
     }
 
     async updateRegistry() {
@@ -113,6 +108,10 @@ export class Fetcher {
 
                     this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
 
+                    if (proposalMetadata.votingPowerStrategy == TonVoteSdk.VotingPowerStrategy.NftCcollection) {
+                        this.state.addProposalAddrToMissingNftCollection(proposalAddress)
+                    }
+
                 }));
         
                 daoData.nextProposalId = newProposals.endProposalId;
@@ -178,6 +177,24 @@ export class Fetcher {
         
     }
 
+    async updatePendingProposalData() {
+        const proposalsData = this.state.getProposalsData();
+        const nftHolders = this.state.getNftHolders();
+
+        const proposalAddrWithMissingNftCollection = this.state.getProposalAddrWithMissingNftCollection();
+
+        await Promise.all([...proposalAddrWithMissingNftCollection].map(async (proposalAddr) => {
+            let proposalData = proposalsData.get(proposalAddr);
+
+            console.log(`fetching nft items data proposalAddr ${proposalAddr}`);
+            nftHolders[proposalData!.metadata.nft!] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
+            this.state.setNftHolders(proposalData!.metadata.nft!, nftHolders[proposalData!.metadata.nft!]);
+            console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: ${nftHolders[proposalData!.metadata.nft!]}`);
+
+            this.state.deleteProposalAddrFromMissingNftCollection(proposalAddr);
+        }));     
+    }
+
     async updateProposalVotingData() {
 
         const proposalsData = this.state.getProposalsData();
@@ -214,7 +231,7 @@ export class Fetcher {
             // TODO: getAllVotes - use only new tx not all of them
             let newVotes = TonVoteSdk.getAllVotes(newTx.allTxns, proposalData.metadata);
             
-            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower);
+            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategy);
             let newProposalResults = TonVoteSdk.getCurrentResults(newTx.allTxns, newVotingPower, proposalData.metadata);
 
             proposalVotingData.proposalResult = newProposalResults;
@@ -241,13 +258,15 @@ export class Fetcher {
 
         this.finished = false;
 
-        this.updateDaos();
+        await this.updateDaos();
 
-        this.updateDaosProposals();
+        await this.updateDaosProposals();
 
         this.updateProposalsState();
 
-        this.updateProposalVotingData();
+        await this.updatePendingProposalData();
+
+        await this.updateProposalVotingData();
         
         this.finished = true;
         this.state.setUpdateTime()
