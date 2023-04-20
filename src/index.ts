@@ -53,8 +53,9 @@ export function serve() {
     response.status(200).json(state.getUpdateTime());
   });
 
-  app.get('/fetchUpdateTime', (_request, response) => {
-    response.status(200).json(fetcher.getFetchUpdateTime());
+  app.get('/fetchUpdateTime/:proposalAddress', (_request, response) => {
+    const { proposalAddress } = _request.params;
+    response.status(200).json(fetcher.getFetchUpdateTime(proposalAddress));
   });
 
   app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
