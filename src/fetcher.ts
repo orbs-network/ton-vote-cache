@@ -17,7 +17,7 @@ export class Fetcher {
     private client!: TonClient;
     private client4!: TonClient4;
     private state: State;
-    private fetchUpdate: number = Date.now();
+    private fetchUpdate: {[proposalAddress: string]: number} = {};
     finished: boolean = true;
     proposalsByState: ProposalsByState = {pending: new Set(), active: new Set(), ended: new Set()};
 
@@ -203,7 +203,12 @@ export class Fetcher {
 
         const proposalsData = this.state.getProposalsData();
         
-        await Promise.all([...this.proposalsByState.active].map(async (proposalAddr) => {
+        await Promise.all([...this.proposalsByState.active, ...this.proposalsByState.ended].map(async (proposalAddr) => {
+
+            if (this.proposalsByState.ended.has(proposalAddr) && (proposalAddr in this.fetchUpdate)) {
+                return;
+            }
+
             let proposalData = proposalsData.get(proposalAddr);
             let proposalVotingData = proposalData!.votingData;
 
@@ -225,7 +230,7 @@ export class Fetcher {
 
             if (newTx.maxLt == proposalVotingData.txData.maxLt) {
                 console.log(`Nothing to fetch for proposal at ${proposalAddr}`);
-                this.fetchUpdate = Date.now();
+                this.fetchUpdate[proposalAddr] = Date.now();
                 return;
             }
             
@@ -249,6 +254,7 @@ export class Fetcher {
             console.log('setting new proposalData: ', proposalData);
             
             this.state.setProposalData(proposalAddr, proposalData);
+            this.fetchUpdate[proposalAddr] = Date.now();
         }));
           
     }
@@ -284,7 +290,7 @@ export class Fetcher {
         }
     }
 
-    getFetchUpdateTime() {
-        return this.fetchUpdate;
+    getFetchUpdateTime(proposalAddress: string) {
+        return this.fetchUpdate[proposalAddress];
     }
 }
