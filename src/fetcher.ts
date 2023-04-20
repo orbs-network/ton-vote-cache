@@ -239,8 +239,9 @@ export class Fetcher {
             let newVotes = TonVoteSdk.getAllVotes(newTx.allTxns, proposalData.metadata);
             
             const nftItmesHolders = this.state.getNftHolders();
-
-            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategy, nftItmesHolders[proposalAddr]);
+            console.log('nftItmesHolders: ', nftItmesHolders);
+            
+            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategy, nftItmesHolders[proposalData.metadata.nft!]);
             let newProposalResults = TonVoteSdk.getCurrentResults(newTx.allTxns, newVotingPower, proposalData.metadata);
 
             proposalVotingData.proposalResult = newProposalResults;
