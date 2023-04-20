@@ -186,11 +186,15 @@ export class Fetcher {
         await Promise.all([...proposalAddrWithMissingNftCollection].map(async (proposalAddr) => {
             let proposalData = proposalsData.get(proposalAddr);
 
-            console.log(`fetching nft items data proposalAddr ${proposalAddr}`);
-            nftHolders[proposalData!.metadata.nft!] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
-            this.state.setNftHolders(proposalData!.metadata.nft!, nftHolders[proposalData!.metadata.nft!]);
-            console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: ${nftHolders[proposalData!.metadata.nft!]}`);
+            if (!(proposalData!.metadata.nft! in nftHolders)) {
+                console.log(`fetching nft items data proposalAddr ${proposalAddr}`);
+                nftHolders[proposalData!.metadata.nft!] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
+                this.state.setNftHolders(proposalData!.metadata.nft!, nftHolders[proposalData!.metadata.nft!]);    
+            } else {
+                console.log(`nft items already exist in nftHolder for collection ${proposalData!.metadata.nft!}, skiping fetching data proposalAddr ${proposalAddr}`);
+            }
 
+            console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: ${nftHolders[proposalData!.metadata.nft!]}`);
             this.state.deleteProposalAddrFromMissingNftCollection(proposalAddr);
         }));     
     }
@@ -219,8 +223,6 @@ export class Fetcher {
 
             const newTx = await TonVoteSdk.getTransactions(this.client, proposalAddr, proposalVotingData.txData.maxLt);
 
-            // console.log(`tx for ${proposalAddr}: `, newTx);
-            
             if (newTx.maxLt == proposalVotingData.txData.maxLt) {
                 console.log(`Nothing to fetch for proposal at ${proposalAddr}`);
                 this.fetchUpdate = Date.now();
@@ -231,7 +233,9 @@ export class Fetcher {
             // TODO: getAllVotes - use only new tx not all of them
             let newVotes = TonVoteSdk.getAllVotes(newTx.allTxns, proposalData.metadata);
             
-            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategy);
+            const nftItmesHolders = this.state.getNftHolders();
+
+            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategy, nftItmesHolders[proposalAddr]);
             let newProposalResults = TonVoteSdk.getCurrentResults(newTx.allTxns, newVotingPower, proposalData.metadata);
 
             proposalVotingData.proposalResult = newProposalResults;
