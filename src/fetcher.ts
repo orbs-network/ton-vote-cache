@@ -186,15 +186,15 @@ export class Fetcher {
         await Promise.all([...proposalAddrWithMissingNftCollection].map(async (proposalAddr) => {
             let proposalData = proposalsData.get(proposalAddr);
 
-            if (!(proposalData!.metadata.nft! in nftHolders)) {
-                console.log(`fetching nft items data proposalAddr ${proposalAddr}`);
-                nftHolders[proposalData!.metadata.nft!] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
-                this.state.setNftHolders(proposalData!.metadata.nft!, nftHolders[proposalData!.metadata.nft!]);    
+            if (!(proposalAddr in nftHolders)) {
+                console.log(`fetching nft items data for proposalAddr ${proposalAddr}`);
+                nftHolders[proposalAddr] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
+                this.state.setNftHolders(proposalAddr, nftHolders[proposalAddr]);    
             } else {
-                console.log(`nft items already exist in nftHolder for collection ${proposalData!.metadata.nft!}, skiping fetching data proposalAddr ${proposalAddr}`);
+                console.log(`nft items already exist in nftHolder for collection ${proposalAddr}, skiping fetching data proposalAddr ${proposalAddr}`);
             }
 
-            console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: ${nftHolders[proposalData!.metadata.nft!]}`);
+            console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: ${nftHolders[proposalAddr]}`);
             this.state.deleteProposalAddrFromMissingNftCollection(proposalAddr);
         }));     
     }
@@ -241,7 +241,7 @@ export class Fetcher {
             const nftItmesHolders = this.state.getNftHolders();
             console.log('nftItmesHolders: ', nftItmesHolders);
             
-            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategy, nftItmesHolders[proposalData.metadata.nft!]);
+            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategy, nftItmesHolders[proposalAddr]);
             let newProposalResults = TonVoteSdk.getCurrentResults(newTx.allTxns, newVotingPower, proposalData.metadata);
 
             proposalVotingData.proposalResult = newProposalResults;
