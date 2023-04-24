@@ -1,5 +1,5 @@
 import { DaosData, NftHolders, ProposalsData, ProposalVotingData, ProposalAddrWithMissingNftCollection } from "./types";
-import { ProposalMetadata } from "ton-vote-sdk";
+import { ProposalMetadata } from "ton-vote-contracts-sdk";
 // import * as Logger from './logger';
 
 

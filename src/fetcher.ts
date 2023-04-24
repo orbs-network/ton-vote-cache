@@ -1,7 +1,7 @@
-import * as TonVoteSdk from "ton-vote-sdk";
+import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
-import { MetadataArgs, DaoRoles } from "ton-vote-sdk";
+import { MetadataArgs, DaoRoles } from "ton-vote-contracts-sdk";
 import { ProposalsByState } from "./types";
 
 

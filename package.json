@@ -31,7 +31,7 @@
     "@types/compression": "^1.7.2",
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.16",
-    "ton-vote-sdk": "^3.7.3"
+    "ton-vote-contracts-sdk": "^1.0.0-beta.1"
   },
   "engines": {
     "node": "16.x"
