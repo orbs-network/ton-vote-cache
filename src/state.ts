@@ -24,6 +24,11 @@ export class State {
         return this.nftHolders;
     }
 
+    getProposalNftHolders(proposalAddress: string) {
+        return this.nftHolders[proposalAddress];
+    }
+
+
     getProposalAddrWithMissingNftCollection() {
         return this.proposalAddrWithMissingNftCollection;
     }

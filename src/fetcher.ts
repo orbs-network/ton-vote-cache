@@ -11,6 +11,9 @@ import { ProposalsByState } from "./types";
 const DAOS_BATCH_SIZE = 100;
 const PROPOSALS_BATCH_SIZE = 100;
 
+const UPDATE_DAOS_BATCH_SIZE = 35;
+const PROPOSAL_METADATA_BATCH_SIZE = 35;
+
 
 export class Fetcher {
 
@@ -39,6 +42,8 @@ export class Fetcher {
 
     async updateDaos() {
         
+        console.log(`updateDaos started`);
+        
         const daosData = this.state.getDaosData()
 
         console.log(`daosData.nextDaoId = ${daosData.nextDaoId}`);
@@ -49,11 +54,19 @@ export class Fetcher {
 
         console.log(`${newDaos.daoAddresses.length} new daos will be added: `, newDaos.daoAddresses);
 
-        await Promise.all(newDaos.daoAddresses.map(async (daoAddress) => {
-            const daoMetadata = await TonVoteSdk.getDaoMetadata(this.client, daoAddress);  
+        const batchSize = UPDATE_DAOS_BATCH_SIZE; 
+        const daos = newDaos.daoAddresses;
+        const chunks = [];
+        for (let i = 0; i < daos.length; i += batchSize) {
+          chunks.push(daos.slice(i, i + batchSize));
+        }
+        
+        for (const chunk of chunks) {
+          await Promise.all(chunk.map(async (daoAddress) => {
+            const daoMetadata = await TonVoteSdk.getDaoMetadata(this.client, daoAddress);
             const daoRoles = await TonVoteSdk.getDaoRoles(this.client, daoAddress);
             const daoId = await TonVoteSdk.getDaoIndex(this.client, daoAddress);
-          
+        
             daosData.daos.set(daoAddress, {
               daoAddress: daoAddress,
               daoId: daoId,
@@ -62,9 +75,9 @@ export class Fetcher {
               nextProposalId: 0,
               daoProposals: []
             });
-            
-        }));
-
+          }));
+        }
+        
         daosData.nextDaoId = newDaos.endDaoId;
         const sortedDaos = new Map<string, {
             daoAddress: string,
@@ -81,7 +94,9 @@ export class Fetcher {
     }
     
     async updateDaosProposals() {
-        
+
+        console.log(`updateDaosProposals started`);
+
         const daosData = this.state.getDaosData()
         const proposalsData = this.state.getProposalsData();
         console.log(`updateDaosProposals: proposalsData=`, proposalsData);
@@ -95,25 +110,33 @@ export class Fetcher {
         
                 console.log(`address ${daoAddress}: ${newProposals.proposalAddresses?.length} newProposals: `, newProposals);
         
-                await Promise.all(newProposals.proposalAddresses.map(async (proposalAddress) => {
-                    console.log(`fetching info from proposal at address ${proposalAddress}`);                
+                const batchSize = PROPOSAL_METADATA_BATCH_SIZE;
+
+                const proposalAddresses = newProposals.proposalAddresses;
+                const chunks = [];
+                for (let i = 0; i < proposalAddresses.length; i += batchSize) {
+                  chunks.push(proposalAddresses.slice(i, i + batchSize));
+                }
+                
+                for (const chunk of chunks) {
+                  await Promise.all(chunk.map(async (proposalAddress) => {
+                    console.log(`fetching info from proposal at address ${proposalAddress}`);
                     const proposalMetadata = await TonVoteSdk.getProposalMetadata(this.client, this.client4, proposalAddress);
-                    console.log(proposalsData, typeof (proposalsData));
-                    
+                
                     proposalsData.set(proposalAddress, {
-                        daoAddress: daoAddress,
-                        proposalAddress: proposalAddress,
-                        metadata: proposalMetadata
+                      daoAddress: daoAddress,
+                      proposalAddress: proposalAddress,
+                      metadata: proposalMetadata
                     });
-
+                
                     this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
-
+                
                     if (proposalMetadata.votingPowerStrategy == TonVoteSdk.VotingPowerStrategy.NftCcollection) {
-                        this.state.addProposalAddrToMissingNftCollection(proposalAddress)
+                      this.state.addProposalAddrToMissingNftCollection(proposalAddress)
                     }
-
-                }));
-        
+                  }));
+                }
+                        
                 daoData.nextProposalId = newProposals.endProposalId;
 
                 const sortedProposals = newProposals.proposalAddresses!.sort((a, b) => proposalsData.get(a)?.metadata.id! - proposalsData.get(b)?.metadata.id!);
@@ -130,6 +153,8 @@ export class Fetcher {
     }
 
     updateProposalsState() {
+
+        console.log(`updateProposalsState started`);
 
         const proposalsData = this.state.getProposalsData();
         const now = Date.now() / 1000;
@@ -178,6 +203,9 @@ export class Fetcher {
     }
 
     async updatePendingProposalData() {
+        
+        console.log(`updatePendingProposalData started`);
+        
         const proposalsData = this.state.getProposalsData();
         const nftHolders = this.state.getNftHolders();
 
@@ -200,6 +228,8 @@ export class Fetcher {
     }
 
     async updateProposalVotingData() {
+
+        console.log(`updateProposalVotingData started`);
 
         const proposalsData = this.state.getProposalsData();
         
@@ -272,7 +302,7 @@ export class Fetcher {
             this.finished = false;
 
             await this.updateDaos();
-
+            
             await this.updateDaosProposals();
 
             this.updateProposalsState();

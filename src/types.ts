@@ -28,7 +28,7 @@ export type ProposalsData = Map<string, {
 }>
 
 export interface NftHolders {
-    [nftCollectionAddress: string] : Set<string>
+    [proposalAddress: string] : Set<string>
 }
 
 export interface DaosData {

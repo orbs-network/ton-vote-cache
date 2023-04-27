@@ -36,6 +36,11 @@ export function serve() {
     response.status(200).json(state.getProposal(proposalAddress));
   });
 
+  app.get('/proposalNftHolders/:proposalAddress', (_request, response) => {
+    const { proposalAddress } = _request.params;
+    response.status(200).json(state.getProposalNftHolders(proposalAddress));
+  });
+
   app.get('/maxLt/:proposalAddress', (_request, response) => {
     const { proposalAddress } = _request.params;
     response.status(200).json(state.getMaxLt(proposalAddress));
