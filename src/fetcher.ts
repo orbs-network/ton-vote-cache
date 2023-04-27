@@ -99,7 +99,7 @@ export class Fetcher {
 
         const daosData = this.state.getDaosData()
         const proposalsData = this.state.getProposalsData();
-        console.log(`updateDaosProposals: proposalsData=`, proposalsData);
+        console.log(`updateDaosProposals: `, proposalsData);
 
         await Promise.all(Array.from(daosData.daos.entries()).map(async ([daoAddress, daoData]) => {
             console.log(`fetching proposals for dao ${daoAddress}`);
@@ -222,7 +222,7 @@ export class Fetcher {
                 console.log(`nft items already exist in nftHolder for collection ${proposalAddr}, skiping fetching data proposalAddr ${proposalAddr}`);
             }
 
-            console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: ${nftHolders[proposalAddr]}`);
+            console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: `, nftHolders[proposalAddr]);
             this.state.deleteProposalAddrFromMissingNftCollection(proposalAddr);
         }));     
     }
