@@ -32,11 +32,14 @@ export class Fetcher {
         this.client = await TonVoteSdk.getClientV2();
         this.client4 = await TonVoteSdk.getClientV4();
 
+        console.log('starting with masterchainInfo: ', await this.client.getMasterchainInfo())
         await this.updateRegistry();
     }
 
     async updateRegistry() {
         const registry = await TonVoteSdk.getRegistry(this.client);
+        console.log(`registry: `, registry);
+        
         this.state.setRegistry(registry);
     }
 
