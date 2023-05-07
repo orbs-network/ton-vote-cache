@@ -20,18 +20,18 @@ By caching this data and periodically updating it, the cache server is able to p
 
 ## APIs 
 
-cache server entry endpoint is https://ton-vote-cache-server.herokuapp.com
+cache server entry endpoint is https://ton-vote-cache-server.herokuapp.com.
 
 ### /daos
 Returns a list of all registered daos. Every dao in the list is an object which includes:
  - daoAddress - address of the dao contract
  - daoId: a unique id of the dao
  - daoMetadata: such as title, logo and other metadta of the dao
- - daoRoles: every spave has 2 roles 
+ - daoRoles: every space has 2 roles 
     1. DAO dao owner: can change dao metadata, update owners and create new proposals    
     2. Proposal publisher: can create new proposals
  - nextProposalId: the id of the next proposal to be created in the dao. This is a running index so if for example the dao has 3 proposals the value of this param will be 3
- - daoProposals: a list of all address of this dao. The list size should be equal to nextProposalId 
+ - daoProposals: a list of all address of the proposals of this dao. The list size should be equal to nextProposalId 
 
 exmaple: https://ton-vote-cache-server.herokuapp.com/daos
 
@@ -61,7 +61,7 @@ exmaple: https://ton-vote-cache-server.herokuapp.com/daos
 ```
 
 ### /dao/:daoAddress
-Returns a single dao as an object. The returned object is the same format as returned by /daos endpoint
+Returns a single dao at address daoAddress as an object. The returned object is the same format as returned by /daos endpoint.
 
 example: https://ton-vote-cache-server.herokuapp.com/dao/EQBXOjSadD0rTzWTESeHroy33SlcbqBkYSCmA02dEgMIcv0G
 
@@ -91,7 +91,7 @@ example: https://ton-vote-cache-server.herokuapp.com/dao/EQBXOjSadD0rTzWTESeHroy
 ```
 
 ### /numDaos
-Returns the number of registered daos
+Returns the number of registered daos.
 
 example: https://ton-vote-cache-server.herokuapp.com/numDaos
 
