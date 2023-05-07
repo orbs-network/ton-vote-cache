@@ -1,6 +1,6 @@
-# ton-vote-cache-server
+# ton-vote-cache
 
-## description 
+## Description 
 
 [TON.Vote](https://github.com/orbs-network/ton-vote) is a completely decentralized, on-chain DAO governance platform designed exclusively for the TON ecosystem.
 
@@ -187,6 +187,10 @@ When a new nft proposal is created the server will fetch all nft holders of this
 Returns the registry contract address. The registry contract is used to create new daos be sending a create message from the owner. Read [contract](https://github.com/orbs-network/ton-vote-contracts) repo for more information.
 
 
+# Contribution Guidelines
+We appreciate your help in improving the TON.Vote platform. If you've encountered a bug or have an idea for a new feature, please open a new issue or pull request on our [GitHub repository](https://github.com/orbs-network/ton-vote-cache/issues).
+
+When opening an issue, please provide as much detail as possible about the bug or feature request, including steps to reproduce the issue and any relevant logs or screenshots.
 
 # Related Repositories
 - UI: https://github.com/[your-username]/ton-vote-ui
