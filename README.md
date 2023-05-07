@@ -1,4 +1,4 @@
-# TON.Vote Cache server
+# TON.Vote Cache Server
 
 ## Description 
 
