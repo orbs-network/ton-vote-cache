@@ -14,7 +14,9 @@
     "test:quick": "echo '-- TEST --' && ava --verbose --timeout=10m --serial",
     "prepack": "npm run build",
     "prettify": "npx prettier \"src/**/*.ts\" --write && npx prettier \"e2e/**/*.ts\" --write",
-    "start": "npm run build && node ./dist/main.js"
+    "start": "npm run build && node ./dist/main.js",
+    "heroku-dev": "git push heroku-dev dev:main",
+    "heroku-prod": "git push heroku main"
   },
   "dependencies": {
     "@orbs-network/ton-access": "^2.2.2",
