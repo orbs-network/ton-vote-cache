@@ -20,7 +20,9 @@ By caching this data and periodically updating it, the cache server is able to p
 
 ## APIs 
 
-cache server entry endpoint is https://ton-vote-cache-server.herokuapp.com.
+The cache server has 2 endpoints:
+- dev - https://dev-ton-vote-cache-server.herokuapp.com
+- production - https://ton-vote-cache-server.herokuapp.com
 
 ### /daos
 Returns a list of all registered daos. Every dao in the list is an object which includes:
