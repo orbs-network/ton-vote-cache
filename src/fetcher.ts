@@ -1,9 +1,12 @@
 import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
-import { MetadataArgs, DaoRoles } from "ton-vote-contracts-sdk";
+import { MetadataArgs, DaoRoles, ReleaseMode } from "ton-vote-contracts-sdk";
 import { ProposalsByState } from "./types";
+import dotenv from 'dotenv';
 
+
+dotenv.config();
 
 // import {TxData, VotingPower, Votes, ProposalResults, ProposalInfo} from "./types";
 // import * as Logger from './logger';
@@ -13,6 +16,9 @@ const PROPOSALS_BATCH_SIZE = 100;
 
 const UPDATE_DAOS_BATCH_SIZE = 35;
 const PROPOSAL_METADATA_BATCH_SIZE = 35;
+
+
+const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
 
 
 export class Fetcher {
@@ -37,7 +43,7 @@ export class Fetcher {
     }
 
     async updateRegistry() {
-        const registry = await TonVoteSdk.getRegistry(this.client);
+        const registry = await TonVoteSdk.getRegistry(this.client, RELEASE_MODE);
         console.log(`registry: `, registry);
         
         this.state.setRegistry(registry);
@@ -51,7 +57,7 @@ export class Fetcher {
 
         console.log(`daosData.nextDaoId = ${daosData.nextDaoId}`);
         
-        let newDaos = await TonVoteSdk.getDaos(this.client, daosData.nextDaoId, DAOS_BATCH_SIZE, 'asc');
+        let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, daosData.nextDaoId, DAOS_BATCH_SIZE, 'asc');
         
         if (newDaos.daoAddresses.length == 0) return;
 
@@ -134,7 +140,7 @@ export class Fetcher {
                 
                     this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
                 
-                    if (proposalMetadata.votingPowerStrategy == TonVoteSdk.VotingPowerStrategy.NftCcollection) {
+                    if (proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection) {
                       this.state.addProposalAddrToMissingNftCollection(proposalAddress)
                     }
                   }));
@@ -274,7 +280,7 @@ export class Fetcher {
             const nftItmesHolders = this.state.getNftHolders();
             console.log('nftItmesHolders: ', nftItmesHolders);
             
-            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategy, nftItmesHolders[proposalAddr]);
+            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategies[0].type, nftItmesHolders[proposalAddr]);
             let newProposalResults = TonVoteSdk.getCurrentResults(newTx.allTxns, newVotingPower, proposalData.metadata);
 
             proposalVotingData.proposalResult = newProposalResults;
