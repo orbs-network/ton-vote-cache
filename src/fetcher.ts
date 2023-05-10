@@ -8,9 +8,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// import {TxData, VotingPower, Votes, ProposalResults, ProposalInfo} from "./types";
-// import * as Logger from './logger';
-
 const DAOS_BATCH_SIZE = 100;
 const PROPOSALS_BATCH_SIZE = 100;
 
@@ -57,7 +54,7 @@ export class Fetcher {
 
         console.log(`daosData.nextDaoId = ${daosData.nextDaoId}`);
         
-        let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, daosData.nextDaoId, DAOS_BATCH_SIZE, 'asc');
+        let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, 0 /* daosData.nextDaoId */, DAOS_BATCH_SIZE, 'asc');
         
         if (newDaos.daoAddresses.length == 0) return;
 
