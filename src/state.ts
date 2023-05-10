@@ -25,7 +25,7 @@ export class State {
     }
 
     getProposalNftHolders(proposalAddress: string) {
-        return Array.from(this.nftHolders[proposalAddress] || []);
+        return this.nftHolders[proposalAddress] || {};
     }
 
 
@@ -108,7 +108,7 @@ export class State {
         this.proposalsData.set(proposalAddress, proposalData);
     }
 
-    setNftHolders(proposalAddress: string, nftHolders: Set<string>) {
+    setNftHolders(proposalAddress: string, nftHolders: {[nftHolderAddr: string]: number}) {
         this.nftHolders[proposalAddress] = nftHolders;
     }
 
