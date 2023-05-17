@@ -2,7 +2,7 @@ import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
 import { MetadataArgs, DaoRoles, ReleaseMode } from "ton-vote-contracts-sdk";
-import { ProposalsByState } from "./types";
+import { DaosData, NftHolders, ProposalsByState, ProposalsData } from "./types";
 import dotenv from 'dotenv';
 
 
@@ -46,17 +46,31 @@ export class Fetcher {
         this.state.setRegistry(registry);
     }
 
-    async updateDaos() {
+    getState() {
+        return {
+            daosData: this.state.getDaosData(),
+            proposalsData: this.state.getProposalsData(),
+            nftHolders: this.state.getNftHolders(),
+            // proposalAddrWithMissingNftCollection: this.state.getProposalAddrWithMissingNftCollection()
+        }
+    }
+
+    async setState(daosData: DaosData, proposalsData: ProposalsData, nftHolders: NftHolders) {
+            this.state.setDaosData(daosData);
+            this.state.setProposalsData(proposalsData);
+            this.state.setNftHolders(nftHolders); 
+            this.state.setUpdateTime()
+    }
+
+    async updateDaos(daosData: DaosData) : Promise<DaosData> {
         
         console.log(`updateDaos started`);
         
-        const daosData = this.state.getDaosData()
-
         console.log(`daosData.nextDaoId = ${daosData.nextDaoId}`);
         
         let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, 0 /* daosData.nextDaoId */, DAOS_BATCH_SIZE, 'asc');
         
-        if (newDaos.daoAddresses.length == 0) return;
+        if (newDaos.daoAddresses.length == 0) return daosData;
 
         console.log(`${newDaos.daoAddresses.length} new daos will be added: `, newDaos.daoAddresses);
 
@@ -96,15 +110,13 @@ export class Fetcher {
                 
         daosData.daos = sortedDaos;
 
-        this.state.setDaosData(daosData); 
+        return daosData;
     }
     
-    async updateDaosProposals() {
+    async updateDaosProposals(daosData: DaosData, proposalsData: ProposalsData) {
 
         console.log(`updateDaosProposals started`);
 
-        const daosData = this.state.getDaosData()
-        const proposalsData = this.state.getProposalsData();
         console.log(`updateDaosProposals: `, proposalsData);
 
         await Promise.all(Array.from(daosData.daos.entries()).map(async ([daoAddress, daoData]) => {
@@ -154,15 +166,13 @@ export class Fetcher {
             }
         }));
 
-        this.state.setProposalsData(proposalsData);             
-        this.state.setDaosData(daosData);             
+        return {daosData, proposalsData};
     }
 
-    updateProposalsState() {
+    updateProposalsState(proposalsData: ProposalsData) {
 
         console.log(`updateProposalsState started`);
 
-        const proposalsData = this.state.getProposalsData();
         const now = Date.now() / 1000;
 
         this.proposalsByState.pending.forEach(proposalAddress => {
@@ -208,13 +218,10 @@ export class Fetcher {
         
     }
 
-    async updatePendingProposalData() {
+    async updatePendingProposalData(proposalsData: ProposalsData, nftHolders: NftHolders) {
         
         console.log(`updatePendingProposalData started`);
         
-        const proposalsData = this.state.getProposalsData();
-        const nftHolders = this.state.getNftHolders();
-
         const proposalAddrWithMissingNftCollection = this.state.getProposalAddrWithMissingNftCollection();
 
         await Promise.all([...proposalAddrWithMissingNftCollection].map(async (proposalAddr) => {
@@ -223,21 +230,20 @@ export class Fetcher {
             if (!(proposalAddr in nftHolders)) {
                 console.log(`fetching nft items data for proposalAddr ${proposalAddr}`);
                 nftHolders[proposalAddr] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
-                this.state.setNftHolders(proposalAddr, nftHolders[proposalAddr]);    
             } else {
                 console.log(`nft items already exist in nftHolder for collection ${proposalAddr}, skiping fetching data proposalAddr ${proposalAddr}`);
             }
 
             console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: `, nftHolders[proposalAddr]);
             this.state.deleteProposalAddrFromMissingNftCollection(proposalAddr);
-        }));     
+        }));  
+        
+        return nftHolders;
     }
 
-    async updateProposalVotingData() {
+    async updateProposalVotingData(proposalsData: ProposalsData, nftHolders: NftHolders): Promise<ProposalsData> {
 
         console.log(`updateProposalVotingData started`);
-
-        const proposalsData = this.state.getProposalsData();
         
         await Promise.all([...this.proposalsByState.active, ...this.proposalsByState.ended].map(async (proposalAddr) => {
 
@@ -273,11 +279,8 @@ export class Fetcher {
             newTx.allTxns = [...newTx.allTxns, ...proposalVotingData.txData.allTxns]
             // TODO: getAllVotes - use only new tx not all of them
             let newVotes = TonVoteSdk.getAllVotes(newTx.allTxns, proposalData.metadata);
-            
-            const nftItmesHolders = this.state.getNftHolders();
-            console.log('nftItmesHolders: ', nftItmesHolders);
-            
-            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategies[0].type, nftItmesHolders[proposalAddr]);
+                        
+            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategies[0].type, nftHolders[proposalAddr]);
             let newProposalResults = TonVoteSdk.getCurrentResults(newTx.allTxns, newVotingPower, proposalData.metadata);
 
             proposalVotingData.proposalResult = newProposalResults;
@@ -290,10 +293,12 @@ export class Fetcher {
 
             console.log('setting new proposalData: ', proposalData);
             
-            this.state.setProposalData(proposalAddr, proposalData);
             this.fetchUpdate[proposalAddr] = Date.now();
+
         }));
-          
+
+        return proposalsData;
+
     }
 
     async run() {
@@ -307,18 +312,20 @@ export class Fetcher {
 
             this.finished = false;
 
-            await this.updateDaos();
+            let {daosData, proposalsData, nftHolders} = this.getState();
+
+            daosData = await this.updateDaos(daosData);
             
-            await this.updateDaosProposals();
+            ({daosData, proposalsData} = await this.updateDaosProposals(daosData, proposalsData));
 
-            this.updateProposalsState();
+            this.updateProposalsState(proposalsData);
 
-            await this.updatePendingProposalData();
+            nftHolders = await this.updatePendingProposalData(proposalsData, nftHolders);
 
-            await this.updateProposalVotingData();
+            proposalsData = await this.updateProposalVotingData(proposalsData, nftHolders);
             
+            this.setState(daosData, proposalsData, nftHolders);
             this.finished = true;
-            this.state.setUpdateTime()
 
         } catch (error) {
 

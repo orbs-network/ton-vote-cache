@@ -108,8 +108,8 @@ export class State {
         this.proposalsData.set(proposalAddress, proposalData);
     }
 
-    setNftHolders(proposalAddress: string, nftHolders: {[nftHolderAddr: string]: number}) {
-        this.nftHolders[proposalAddress] = nftHolders;
+    setNftHolders(nftHolders: NftHolders) {
+        this.nftHolders = nftHolders;
     }
 
     setProposalsData(proposalsData: ProposalsData) {
