@@ -4,6 +4,7 @@ import { State } from "./state";
 import { MetadataArgs, DaoRoles, ReleaseMode } from "ton-vote-contracts-sdk";
 import { DaosData, NftHolders, ProposalsByState, ProposalsData } from "./types";
 import dotenv from 'dotenv';
+const _ = require('lodash');
 
 
 dotenv.config();
@@ -48,14 +49,14 @@ export class Fetcher {
 
     getState() {
         return {
-            daosData: this.state.getDaosData(),
-            proposalsData: this.state.getProposalsData(),
-            nftHolders: this.state.getNftHolders(),
+            daosData: _.cloneDeep(this.state.getDaosData()),
+            proposalsData: _.cloneDeep(this.state.getProposalsData()),
+            nftHolders: _.cloneDeep(this.state.getNftHolders()),
             // proposalAddrWithMissingNftCollection: this.state.getProposalAddrWithMissingNftCollection()
         }
     }
 
-    async setState(daosData: DaosData, proposalsData: ProposalsData, nftHolders: NftHolders) {
+    async setState(daosData: DaosData, proposalsData: ProposalsData, nftHolders: NftHolders) {            
             this.state.setDaosData(daosData);
             this.state.setProposalsData(proposalsData);
             this.state.setNftHolders(nftHolders); 
@@ -119,6 +120,7 @@ export class Fetcher {
 
         console.log(`updateDaosProposals: `, proposalsData);
 
+        // TODO: batches on daosData.daos
         await Promise.all(Array.from(daosData.daos.entries()).map(async ([daoAddress, daoData]) => {
             console.log(`fetching proposals for dao ${daoAddress}`);
             
