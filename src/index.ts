@@ -63,6 +63,10 @@ export function serve() {
     response.status(200).json(fetcher.getFetchUpdateTime(proposalAddress));
   });
 
+  app.get('/proposalsByState', (_request, response) => {
+    response.status(200).json(fetcher.getProposalsByState());
+  });
+
   app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
     if (error instanceof Error) {
       Logger.error(`Error response to ${req.url}: ${errorString(error)}.`);
