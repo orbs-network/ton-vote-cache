@@ -44,6 +44,8 @@ export class Fetcher {
         const registry = await TonVoteSdk.getRegistry(this.client, RELEASE_MODE);
         console.log(`registry: `, registry);
         
+        if (!registry) throw('Please deploy registry before starting ton vote cache server');
+        
         this.state.setRegistry(registry);
     }
 
@@ -63,13 +65,13 @@ export class Fetcher {
             this.state.setUpdateTime()
     }
 
-    async updateDaos(daosData: DaosData) : Promise<DaosData> {
+    async fetchNewDaos(daosData: DaosData) : Promise<DaosData> {
         
-        console.log(`updateDaos started`);
+        console.log(`fetchNewDaos started`);
         
         console.log(`daosData.nextDaoId = ${daosData.nextDaoId}`);
         
-        let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, 0 /* daosData.nextDaoId */, DAOS_BATCH_SIZE, 'asc');
+        let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, daosData.nextDaoId, DAOS_BATCH_SIZE, 'asc');
         
         if (newDaos.daoAddresses.length == 0) return daosData;
 
@@ -84,15 +86,14 @@ export class Fetcher {
         
         for (const chunk of chunks) {
           await Promise.all(chunk.map(async (daoAddress) => {
-            const daoMetadata = await TonVoteSdk.getDaoMetadata(this.client, daoAddress);
-            const daoRoles = await TonVoteSdk.getDaoRoles(this.client, daoAddress);
-            const daoId = await TonVoteSdk.getDaoIndex(this.client, daoAddress);
-        
+            const daoState = await TonVoteSdk.getDaoState(this.client, daoAddress);
+            const metadataArgs = await TonVoteSdk.getDaoMetadata(this.client, daoState.metadata);
+            
             daosData.daos.set(daoAddress, {
               daoAddress: daoAddress,
-              daoId: daoId,
-              daoMetadata: daoMetadata,
-              daoRoles: daoRoles,
+              daoId: daoState.daoIndex,
+              daoMetadata: {metadataAddress: daoState.metadata, metadataArgs: metadataArgs},
+              daoRoles: {owner: daoState.owner, proposalOwner: daoState.proposalOwner},
               nextProposalId: 0,
               daoProposals: []
             });
@@ -103,7 +104,7 @@ export class Fetcher {
         const sortedDaos = new Map<string, {
             daoAddress: string,
             daoId: number,
-            daoMetadata: MetadataArgs,
+            daoMetadata: {metadataAddress: string, metadataArgs: MetadataArgs},
             daoRoles: DaoRoles,
             nextProposalId: number,
             daoProposals: string[]
@@ -316,7 +317,7 @@ export class Fetcher {
 
             let {daosData, proposalsData, nftHolders} = this.getState();
 
-            daosData = await this.updateDaos(daosData);
+            daosData = await this.fetchNewDaos(daosData);
             
             ({daosData, proposalsData} = await this.updateDaosProposals(daosData, proposalsData));
 

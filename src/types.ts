@@ -36,7 +36,7 @@ export interface DaosData {
     daos: Map<string, {
         daoAddress: string,
         daoId: number,
-        daoMetadata: MetadataArgs,
+        daoMetadata: {metadataAddress: string, metadataArgs: MetadataArgs},
         daoRoles: DaoRoles,
         nextProposalId: number, 
         daoProposals: string[]
