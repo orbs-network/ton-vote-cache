@@ -1,5 +1,5 @@
 import * as Logger from './logger';
-import { errorString } from './helpers';
+import { errorString, sendNotification } from './helpers';
 
 export class TaskLoop {
   private handle: NodeJS.Timeout | undefined;
@@ -14,7 +14,8 @@ export class TaskLoop {
         }
       },
       (err) => {
-        Logger.error(`Error in runTask: ${errorString(err)}.`);
+        Logger.error(`Error in runTask: ${errorString(err)}`);
+        sendNotification(`Error in runTask: ${errorString(err)}`);
         if (this.started) {
           this.handle = setTimeout(this.runTask, this.pause);
         }
@@ -23,6 +24,7 @@ export class TaskLoop {
   };
 
   start = () => {
+    sendNotification('Task start was called');
     if (!this.started) {
         this.started = true;
         this.handle = setTimeout(this.runTask, 10 * 1000);
@@ -31,6 +33,7 @@ export class TaskLoop {
 
   stop = () => {
     this.started = false;
+    sendNotification('Task stop was called');
     if (this.handle !== undefined) {
       clearTimeout(this.handle);
     }

@@ -1,3 +1,9 @@
+import axios from 'axios';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+
 // create an array of numbers, from 0 to range
 export function range(length: number) {
   return [...Array(length).keys()];
@@ -75,4 +81,25 @@ export function normalizeAddress(address: string): string {
   if (!address) return address;
   if (address.startsWith('0x')) return address.substr(2).toLowerCase();
   return address.toLowerCase();
+}
+
+export async function sendNotification(message: string) {
+  if (!process.env.TELEGRAM_NOTIF_GROUP_TOKEN || !process.env.TELEGRAM_NOTIF_GROUP_CHAT_ID) {
+    console.log('Telegram channel is not configured sending messageto console log: ', message);  
+    return;  
+  }
+
+  const url = `https://api.telegram.org/bot${process.env.TELEGRAM_NOTIF_GROUP_TOKEN}/sendMessage`;
+  const body = {
+      chat_id: process.env.TELEGRAM_NOTIF_GROUP_CHAT_ID,
+      text: message,
+      parse_mode: 'HTML'
+  };
+
+  try {
+      await axios.post(url, body);
+
+  } catch (error) {
+      console.error('Error sending notification:', error);
+  }
 }

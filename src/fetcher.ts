@@ -4,7 +4,8 @@ import { State } from "./state";
 import { MetadataArgs, DaoRoles, ReleaseMode } from "ton-vote-contracts-sdk";
 import { DaosData, NftHolders, ProposalsByState, ProposalsData } from "./types";
 import dotenv from 'dotenv';
-const _ = require('lodash');
+import _ from 'lodash';
+import { sendNotification } from "./helpers";
 
 
 dotenv.config();
@@ -37,6 +38,7 @@ export class Fetcher {
     }
 
     async init() {
+        await sendNotification('Ton Vote Cache Server started');
         this.client = await TonVoteSdk.getClientV2();
         this.client4 = await TonVoteSdk.getClientV4();
 
@@ -136,12 +138,16 @@ export class Fetcher {
                 return;
             }
 
+            console.log(`fetching new Dao Metadata for ${daoAddress} ...`);
+            
             const metadataArgs = await TonVoteSdk.getDaoMetadata(this.client, daoState.metadata);
             
             let daoToUpdate = this.daosData.daos.get(daoAddress);
             daoToUpdate!.daoMetadata = {metadataAddress: daoState.metadata, metadataArgs: metadataArgs};
             daoToUpdate!.daoRoles = {owner: daoState.owner, proposalOwner: daoState.proposalOwner};
-          }));
+
+            console.log(`Dao Metadata for ${daoAddress} was updated successfully`);
+        }));
         }
     }
         
@@ -149,53 +155,67 @@ export class Fetcher {
 
         console.log(`updateDaosProposals started`);
 
-        // TODO: batches on daosData.daos
-        await Promise.all(Array.from(this.daosData.daos.entries()).map(async ([daoAddress, daoData]) => {
-            console.log(`fetching proposals for dao ${daoAddress}`);
-            
-            const newProposals = await TonVoteSdk.getDaoProposals(this.client, daoAddress, daoData.nextProposalId, PROPOSALS_BATCH_SIZE, 'asc');
-            
-            if (newProposals.proposalAddresses) {
+        const daos = Array.from(this.daosData.daos.entries());
+        const daoBatchSize = DAOS_BATCH_SIZE;
+        const daoBatches = [];
         
-                console.log(`address ${daoAddress}: ${newProposals.proposalAddresses?.length} newProposals: `, newProposals);
+        for (let i = 0; i < daos.length; i += daoBatchSize) {
+            daoBatches.push(daos.slice(i, i + daoBatchSize));
+        }
         
-                const batchSize = PROPOSAL_METADATA_BATCH_SIZE;
-
-                const proposalAddresses = newProposals.proposalAddresses;
-                const chunks = [];
-                for (let i = 0; i < proposalAddresses.length; i += batchSize) {
-                  chunks.push(proposalAddresses.slice(i, i + batchSize));
-                }
+        for (const daoBatch of daoBatches) {
+            
+            await Promise.all(daoBatch.map(async ([daoAddress, daoData]) => {
                 
-                for (const chunk of chunks) {
-                  await Promise.all(chunk.map(async (proposalAddress) => {
-                    console.log(`fetching info from proposal at address ${proposalAddress}`);
-                    const proposalMetadata = await TonVoteSdk.getProposalMetadata(this.client, this.client4, proposalAddress);
+                console.log(`fetching proposals for dao ${daoAddress}`);
+                const newProposals = await TonVoteSdk.getDaoProposals(this.client, daoAddress, daoData.nextProposalId, PROPOSALS_BATCH_SIZE, 'asc');
                 
-                    this.proposalsData.set(proposalAddress, {
-                      daoAddress: daoAddress,
-                      proposalAddress: proposalAddress,
-                      metadata: proposalMetadata
-                    });
-                
-                    this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
-                
-                    if (proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection) {
-                      this.state.addProposalAddrToMissingNftCollection(proposalAddress)
+                if (newProposals.proposalAddresses) {
+                    
+                    console.log(`Dao at address ${daoAddress}: ${newProposals.proposalAddresses?.length} newProposals: `, newProposals);
+                    const allPromises: Promise<void>[] = [];
+                    const chunks = [];
+                    const proposalAddresses = newProposals.proposalAddresses;
+                    const batchSize = PROPOSAL_METADATA_BATCH_SIZE;
+                    
+                    for (let i = 0; i < proposalAddresses.length; i += batchSize) {
+                        chunks.push(proposalAddresses.slice(i, i + batchSize));
                     }
-                  }));
-                }
-                        
-                daoData.nextProposalId = newProposals.endProposalId;
-
-                const sortedProposals = newProposals.proposalAddresses!.sort((a, b) => this.proposalsData.get(a)?.metadata.id! - this.proposalsData.get(b)?.metadata.id!);
-                daoData.daoProposals = [...daoData.daoProposals, ...sortedProposals];
-                this.daosData.daos.set(daoAddress, daoData);
         
-            } else {
-                console.log(`no proposals found for dao ${daoAddress}`);
-            }
-        }));
+                    for (const chunk of chunks) {
+                        chunk.forEach(proposalAddress => {
+                            const promise = (async () => {
+                                console.log(`fetching info from proposal at address ${proposalAddress}`);
+                                const proposalMetadata = await TonVoteSdk.getProposalMetadata(this.client, this.client4, proposalAddress);
+                                this.proposalsData.set(proposalAddress, {
+                                    daoAddress: daoAddress,
+                                    proposalAddress: proposalAddress,
+                                    metadata: proposalMetadata
+                                });
+                                this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
+                                if (proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection) {
+                                    console.log(`adding proposal address ${proposalAddress} to missing nft collections`);
+                                    this.state.addProposalAddrToMissingNftCollection(proposalAddress);
+                                }
+                            })();
+                            allPromises.push(promise);
+                        });
+
+                        await Promise.all(allPromises);
+                    }
+
+                    daoData.nextProposalId = newProposals.endProposalId;
+                    const sortedProposals = newProposals.proposalAddresses!.sort((a, b) => this.proposalsData.get(a)?.metadata.id! - this.proposalsData.get(b)?.metadata.id!);
+                    daoData.daoProposals = [...daoData.daoProposals, ...sortedProposals];
+                    this.daosData.daos.set(daoAddress, daoData);
+                
+                } else {
+                    console.log(`no proposals found for Dao at address ${daoAddress}`);
+                }
+
+            }));
+        }
+               
     }
 
     updateProposalsState() {
@@ -365,6 +385,7 @@ export class Fetcher {
 
             this.finished = true;            
             console.log('unexpected error: ', (error as Error).stack);
+            await sendNotification(`unexpected error: ${(error as Error).stack}`);
         }
     }
 

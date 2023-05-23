@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { errorString } from './helpers';
+import { errorString, sendNotification } from './helpers';
 import { TaskLoop } from './task-loop';
 import * as Logger from './logger';
 import { State } from './state';
@@ -69,7 +69,8 @@ export function serve() {
 
   app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
     if (error instanceof Error) {
-      Logger.error(`Error response to ${req.url}: ${errorString(error)}.`);
+      Logger.error(`Error response to ${req.url}: ${errorString(error)}`);
+      sendNotification(`Error response to ${req.url}: ${errorString(error)}`);      
       return res.status(500).json({
         status: 'error',
         error: errorString(error),
