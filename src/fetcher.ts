@@ -53,7 +53,7 @@ export class Fetcher {
         console.log(`registry: `, registry);
         
         if (!registry) throw('Please deploy registry before starting ton vote cache server');
-
+        
         this.state.setRegistry(registry);
     }
 
