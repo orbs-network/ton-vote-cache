@@ -24,7 +24,7 @@ export class TaskLoop {
   };
 
   start = () => {
-    sendNotification('Task start was called');
+    sendNotification('Task-loop start was called');
     if (!this.started) {
         this.started = true;
         this.handle = setTimeout(this.runTask, 10 * 1000);
@@ -33,7 +33,7 @@ export class TaskLoop {
 
   stop = () => {
     this.started = false;
-    sendNotification('Task stop was called');
+    sendNotification('Task-loop stop was called');
     if (this.handle !== undefined) {
       clearTimeout(this.handle);
     }

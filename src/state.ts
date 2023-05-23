@@ -1,4 +1,4 @@
-import { DaosData, NftHolders, ProposalsData, ProposalVotingData, ProposalAddrWithMissingNftCollection } from "./types";
+import { DaosData, NftHolders, ProposalsData, ProposalVotingData } from "./types";
 import { ProposalMetadata } from "ton-vote-contracts-sdk";
 // import * as Logger from './logger';
 
@@ -10,7 +10,6 @@ export class State {
     private proposalsData: ProposalsData = new Map();
     private nftHolders: NftHolders = {};
     private registry!: string;
-    private proposalAddrWithMissingNftCollection: ProposalAddrWithMissingNftCollection = new Set();
 
     getDaosData() {
         return this.daosData
@@ -26,11 +25,6 @@ export class State {
 
     getProposalNftHolders(proposalAddress: string) {
         return this.nftHolders[proposalAddress] || {};
-    }
-
-
-    getProposalAddrWithMissingNftCollection() {
-        return this.proposalAddrWithMissingNftCollection;
     }
 
     getDaos() {
@@ -118,14 +112,6 @@ export class State {
 
     setUpdateTime() {
         return this.updateTime = Date.now();
-    }
-
-    addProposalAddrToMissingNftCollection(proposalAddress: string) {
-        this.proposalAddrWithMissingNftCollection.add(proposalAddress);
-    }
-
-    deleteProposalAddrFromMissingNftCollection(proposalAddress: string) {
-        this.proposalAddrWithMissingNftCollection.delete(proposalAddress);
     }
 
 }

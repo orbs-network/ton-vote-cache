@@ -47,7 +47,7 @@ export function serve() {
   });
 
   app.get('/proposalAddrWithMissingNftCollection', (_request, response) => {
-    response.status(200).json(state.getProposalAddrWithMissingNftCollection());
+    response.status(200).json(fetcher.getProposalAddrWithMissingNftCollection());
   });
 
   app.get('/registry', (_request, response) => {

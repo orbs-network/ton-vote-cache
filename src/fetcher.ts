@@ -2,7 +2,7 @@ import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
 import { MetadataArgs, DaoRoles, ReleaseMode } from "ton-vote-contracts-sdk";
-import { DaosData, NftHolders, ProposalsByState, ProposalsData } from "./types";
+import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
 import { sendNotification } from "./helpers";
@@ -33,6 +33,8 @@ export class Fetcher {
     private proposalsData!: ProposalsData;
     private nftHolders!: NftHolders;
 
+    private proposalAddrWithMissingNftCollection: ProposalAddrWithMissingNftCollection = new Set();
+
     constructor(state: State) {
         this.state = state;
     }
@@ -59,7 +61,6 @@ export class Fetcher {
         this.daosData = _.cloneDeep(this.state.getDaosData());
         this.proposalsData = _.cloneDeep(this.state.getProposalsData());
         this.nftHolders = _.cloneDeep(this.state.getNftHolders());
-        // proposalAddrWithMissingNftCollection: this.state.getProposalAddrWithMissingNftCollection()
     }
 
     async setState() {            
@@ -92,6 +93,8 @@ export class Fetcher {
           await Promise.all(chunk.map(async (daoAddress) => {
             const daoState = await TonVoteSdk.getDaoState(this.client, daoAddress);
             const metadataArgs = await TonVoteSdk.getDaoMetadata(this.client, daoState.metadata);
+            
+            console.log(`inserting daoState and metadata for dao at address ${daoAddress}: `, daoState, metadataArgs);
             
             this.daosData.daos.set(daoAddress, {
               daoAddress: daoAddress,
@@ -195,7 +198,7 @@ export class Fetcher {
                                 this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
                                 if (proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection) {
                                     console.log(`adding proposal address ${proposalAddress} to missing nft collections`);
-                                    this.state.addProposalAddrToMissingNftCollection(proposalAddress);
+                                    this.proposalAddrWithMissingNftCollection.add(proposalAddress)
                                 }
                             })();
                             allPromises.push(promise);
@@ -271,9 +274,7 @@ export class Fetcher {
         
         console.log(`updatePendingProposalData started`);
         
-        const proposalAddrWithMissingNftCollection = this.state.getProposalAddrWithMissingNftCollection();
-
-        await Promise.all([...proposalAddrWithMissingNftCollection].map(async (proposalAddr) => {
+        await Promise.all([...this.proposalAddrWithMissingNftCollection].map(async (proposalAddr) => {
             let proposalData = this.proposalsData.get(proposalAddr);
 
             if (!(proposalAddr in this.nftHolders)) {
@@ -284,7 +285,7 @@ export class Fetcher {
             }
 
             console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: `, this.nftHolders[proposalAddr]);
-            this.state.deleteProposalAddrFromMissingNftCollection(proposalAddr);
+            this.proposalAddrWithMissingNftCollection.delete(proposalAddr);
         }));          
     }
 
@@ -392,4 +393,9 @@ export class Fetcher {
     getFetchUpdateTime(proposalAddress: string) {
         return this.fetchUpdate[proposalAddress];
     }
+
+    getProposalAddrWithMissingNftCollection() {
+        return this.getProposalAddrWithMissingNftCollection;
+    }
+
 }
