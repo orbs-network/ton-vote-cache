@@ -30,7 +30,7 @@
     "lodash": "^4.17.21",
     "rimraf": "^3.0.2",
     "ton": "^13.4.1",
-    "ton-vote-contracts-sdk": "^1.0.0-beta.39",
+    "ton-vote-contracts-sdk": "^1.0.0-beta.43",
     "typescript": "^4.9.5"
   },
   "engines": {
