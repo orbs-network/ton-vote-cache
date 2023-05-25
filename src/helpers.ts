@@ -92,7 +92,7 @@ export async function sendNotification(message: string) {
   const url = `https://api.telegram.org/bot${process.env.TELEGRAM_NOTIF_GROUP_TOKEN}/sendMessage`;
   const body = {
       chat_id: process.env.TELEGRAM_NOTIF_GROUP_CHAT_ID,
-      text: message,
+      text: `[${process.env.ENV_NAME}]: ${message}`,
       parse_mode: 'HTML'
   };
 
