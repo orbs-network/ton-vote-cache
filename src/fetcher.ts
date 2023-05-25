@@ -380,7 +380,9 @@ export class Fetcher {
             this.setState();
             this.finished = true;
 
-            console.log(`Finished in ${(Date.now()-startTime)/1000} seconds`);            
+            console.log(`Stats: ${this.daosData.daos.size} Daos, ${this.proposalsData.size} Proposals`);
+            console.log(`Finished in ${(Date.now()-startTime)/1000} seconds`); 
+            console.log(`------------------------------------------------------------`);                       
 
         } catch (error) {
 
