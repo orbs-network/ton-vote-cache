@@ -1,7 +1,9 @@
 import { serve } from '.';
+import { sendNotification } from './helpers';
 import * as Logger from './logger';
 
 process.on('uncaughtException', function (err) {
+  sendNotification('Uncaught exception on process, shutting down');
   Logger.log('Uncaught exception on process, shutting down:');
   Logger.error(err.stack);
   process.exit(1);
@@ -13,7 +15,8 @@ try {
   const server = serve();
 
   process.on('SIGINT', function () {
-    Logger.log('Received SIGINT, shutting down.');
+    sendNotification('Received SIGINT, shutting down');
+    Logger.log('Received SIGINT, shutting down');
     if (server) {
       server.close(function (err) {
         if (err) {
@@ -24,6 +27,7 @@ try {
     }
   });
 } catch (err: any) {
+  sendNotification('Exception thrown from main, shutting down');
   Logger.log('Exception thrown from main, shutting down:');
   Logger.error(err.stack);
   process.exit(128);

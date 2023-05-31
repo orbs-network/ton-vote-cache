@@ -389,6 +389,7 @@ export class Fetcher {
             this.finished = true;            
             console.log('unexpected error: ', (error as Error).stack);
             await sendNotification(`unexpected error: ${(error as Error).stack}`);
+            console.log(`------------------------------------------------------------`);                       
         }
     }
 
