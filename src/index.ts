@@ -5,6 +5,9 @@ import { TaskLoop } from './task-loop';
 import * as Logger from './logger';
 import { State } from './state';
 import { Fetcher } from './fetcher';
+const http = require('http');
+const https = require('https');
+const fs = require('fs');
 
 const SOCKET_TIMEOUT_SEC = 60;
 const PORT = Number(process.env.PORT) || 3000;
@@ -83,14 +86,39 @@ export function serve() {
   const fetcherSyncTask = new TaskLoop(() => fetcher.run(), 60 * 1000);  
   fetcherSyncTask.start();
 
-  const server = app.listen(PORT, '0.0.0.0', () =>
-    Logger.log(`Dao Vote Server is listening on port ${PORT}!`)
-  );
+  let server;
+
+  if (process.env.ENV_NAME === 'PRODUCTION-EC2') {
+    // Load the SSL/TLS certificate files
+    const privateKey = fs.readFileSync('/etc/letsencrypt/live/ec2-cache-server.ton.vote/privkey.pem', 'utf8');
+    const certificate = fs.readFileSync('/etc/letsencrypt/live/ec2-cache-server.ton.vote/fullchain.pem', 'utf8');
+
+    // Create the HTTPS server
+    const options = {
+      key: privateKey,
+      cert: certificate
+    };
+    server = https.createServer(options, app);
+
+    // Start the server
+    server.listen(PORT, '0.0.0.0', () =>
+      Logger.log(`Dao Vote Server is listening on port ${PORT} with HTTPS!`)
+    );
+  } else {
+    // Start the server without HTTPS
+    server = http.createServer(app);
+
+    // Start the server
+    server.listen(PORT, '0.0.0.0', () =>
+      Logger.log(`Dao Vote Server is listening on port ${PORT} without HTTPS!`)
+    );
+  }  
 
   server.setTimeout(SOCKET_TIMEOUT_SEC * 1000);
   server.requestTimeout = SOCKET_TIMEOUT_SEC * 1000;
   server.on('close', () => {
     fetcherSyncTask.stop();
   });
+
   return server;
 }

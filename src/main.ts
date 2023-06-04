@@ -18,7 +18,7 @@ try {
     sendNotification('Received SIGINT, shutting down');
     Logger.log('Received SIGINT, shutting down');
     if (server) {
-      server.close(function (err) {
+      server.close(function (err: any) {
         if (err) {
           Logger.error(err.stack || err.toString());
         }
