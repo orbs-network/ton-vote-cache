@@ -5,9 +5,9 @@ import { TaskLoop } from './task-loop';
 import * as Logger from './logger';
 import { State } from './state';
 import { Fetcher } from './fetcher';
-const http = require('http');
-const https = require('https');
-const fs = require('fs');
+import http from 'http';
+import https from 'https';
+import fs from 'fs';
 
 const SOCKET_TIMEOUT_SEC = 60;
 const PORT = Number(process.env.PORT) || 3000;
