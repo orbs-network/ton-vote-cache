@@ -90,8 +90,8 @@ export function serve() {
 
   if (process.env.ENV_NAME === 'PRODUCTION-EC2') {
     // Load the SSL/TLS certificate files
-    const privateKey = fs.readFileSync('/etc/letsencrypt/live/ec2-cache-server.ton.vote/privkey.pem', 'utf8');
-    const certificate = fs.readFileSync('/etc/letsencrypt/live/ec2-cache-server.ton.vote/cert.pem', 'utf8');
+    const privateKey = fs.readFileSync(process.env.SERVER_PRIVATE_KEY!, 'utf8');
+    const certificate = fs.readFileSync(process.env.SERVER_CERT!, 'utf8');
 
     // Create the HTTPS server
     const options = {
