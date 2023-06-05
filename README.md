@@ -1,4 +1,4 @@
-# TON.Vote Cache Server
+# Caching server for ton.vote providing convenient API over on-chain data
 
 ## Description 
 
