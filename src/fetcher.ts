@@ -61,6 +61,9 @@ export class Fetcher {
         this.daosData = _.cloneDeep(this.state.getDaosData());
         this.proposalsData = _.cloneDeep(this.state.getProposalsData());
         this.nftHolders = _.cloneDeep(this.state.getNftHolders());
+
+        console.log(this.nftHolders);
+        
     }
 
     async setState() {            
@@ -196,7 +199,8 @@ export class Fetcher {
                                     metadata: proposalMetadata
                                 });
                                 this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
-                                if (proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection) {
+                                if ((proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection) || 
+                                (proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection_1Wallet1Vote)) {
                                     console.log(`adding proposal address ${proposalAddress} to missing nft collections`);
                                     this.proposalAddrWithMissingNftCollection.add(proposalAddress)
                                 }
