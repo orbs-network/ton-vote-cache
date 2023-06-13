@@ -127,7 +127,7 @@ export class Fetcher {
         
         console.log(`updateDaosState started`);
                         
-        if (this.daosData.daos.size == 0) return
+        if (this.daosData.daos.size == 0) return;
 
         const batchSize = UPDATE_DAOS_BATCH_SIZE; 
         const daos = Array.from(this.daosData.daos.keys());
