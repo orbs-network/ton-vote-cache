@@ -5,9 +5,14 @@ import { TaskLoop } from './task-loop';
 import * as Logger from './logger';
 import { State } from './state';
 import { Fetcher } from './fetcher';
+import * as fs from 'fs';
 
 const SOCKET_TIMEOUT_SEC = 60;
 const PORT = Number(process.env.PORT) || 3000;
+
+const packageJson = fs.readFileSync('package.json', 'utf8');
+const packageData = JSON.parse(packageJson);
+const version: string = packageData.version;
 
 
 export function serve() {
@@ -65,6 +70,10 @@ export function serve() {
 
   app.get('/proposalsByState', (_request, response) => {
     response.status(200).json(fetcher.getProposalsByState());
+  });
+
+  app.get('/version', (_request, response) => {
+    response.status(200).json(version);
   });
 
   app.use((error: Error, req: Request, res: Response, next: NextFunction) => {

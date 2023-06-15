@@ -60,10 +60,7 @@ export class Fetcher {
     getState() {
         this.daosData = _.cloneDeep(this.state.getDaosData());
         this.proposalsData = _.cloneDeep(this.state.getProposalsData());
-        this.nftHolders = _.cloneDeep(this.state.getNftHolders());
-
-        console.log(this.nftHolders);
-        
+        this.nftHolders = _.cloneDeep(this.state.getNftHolders());        
     }
 
     async setState() {            
@@ -137,23 +134,23 @@ export class Fetcher {
         }
         
         for (const chunk of chunks) {
-          await Promise.all(chunk.map(async (daoAddress) => {
-            const daoState = await TonVoteSdk.getDaoState(this.client, daoAddress);
+            await Promise.all(chunk.map(async (daoAddress) => {
+                const daoState = await TonVoteSdk.getDaoState(this.client, daoAddress);
 
-            if (_.isEqual(daoState, this.daosData.daos.get(daoAddress))) {
-                return;
-            }
+                if (_.isEqual(daoState, this.daosData.daos.get(daoAddress))) {
+                    return;
+                }
 
-            console.log(`fetching new Dao Metadata for ${daoAddress} ...`);
-            
-            const metadataArgs = await TonVoteSdk.getDaoMetadata(this.client, daoState.metadata);
-            
-            let daoToUpdate = this.daosData.daos.get(daoAddress);
-            daoToUpdate!.daoMetadata = {metadataAddress: daoState.metadata, metadataArgs: metadataArgs};
-            daoToUpdate!.daoRoles = {owner: daoState.owner, proposalOwner: daoState.proposalOwner};
+                console.log(`fetching new Dao Metadata for ${daoAddress} ...`);
+                
+                const metadataArgs = await TonVoteSdk.getDaoMetadata(this.client, daoState.metadata);
+                
+                let daoToUpdate = this.daosData.daos.get(daoAddress);
+                daoToUpdate!.daoMetadata = {metadataAddress: daoState.metadata, metadataArgs: metadataArgs};
+                daoToUpdate!.daoRoles = {owner: daoState.owner, proposalOwner: daoState.proposalOwner};
 
-            console.log(`Dao Metadata for ${daoAddress} was updated successfully`);
-        }));
+                console.log(`Dao Metadata for ${daoAddress} was updated successfully`);
+            }));
         }
     }
         
@@ -221,13 +218,12 @@ export class Fetcher {
                 }
 
             }));
-        }
-               
+        }               
     }
 
     async updateProposalMetadataIfChangedOnChain() {
 
-        console.log(`updateProposalsState started`);
+        console.log(`updateProposalMetadataIfChangedOnChain started`);
 
         const pendingProposalsArray = [...this.proposalsByState.pending];
         const batchSize = 50;
