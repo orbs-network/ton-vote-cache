@@ -123,9 +123,9 @@ export class Fetcher {
         this.daosData.daos = sortedDaos;
     }
 
-    async updateDaosState() {
+    async updateDaosStateIfChangedOnChain() {
         
-        console.log(`updateDaosState started`);
+        console.log(`updateDaosStateIfChangedOnChain started`);
                         
         if (this.daosData.daos.size == 0) return;
 
@@ -223,6 +223,32 @@ export class Fetcher {
             }));
         }
                
+    }
+
+    async updateProposalMetadataIfChangedOnChain() {
+
+        console.log(`updateProposalsState started`);
+
+        const pendingProposalsArray = [...this.proposalsByState.pending];
+        const batchSize = 50;
+        
+        while (pendingProposalsArray.length > 0) {
+          const batch = pendingProposalsArray.splice(0, Math.min(batchSize, pendingProposalsArray.length));
+        
+          await Promise.all(batch.map(async (proposalAddress) => {
+            const proposalMetadata = await TonVoteSdk.getProposalMetadata(this.client, this.client4, proposalAddress);
+        
+            if (_.isEqual(proposalMetadata, this.proposalsData.get(proposalAddress)?.metadata)) return;
+        
+            console.log(`proposal metadata at ${this.proposalsData.get(proposalAddress)?.metadata} was changed`);
+        
+            this.proposalsData.set(proposalAddress, {
+              daoAddress: this.proposalsData.get(proposalAddress)?.daoAddress!,
+              proposalAddress: proposalAddress,
+              metadata: proposalMetadata
+            });
+          }));
+        }                            
     }
 
     updateProposalsState() {
@@ -371,9 +397,11 @@ export class Fetcher {
 
             await this.fetchNewDaos();
             
-            await this.updateDaosState();
+            await this.updateDaosStateIfChangedOnChain();
 
             await this.updateDaosProposals();
+
+            await this.updateProposalMetadataIfChangedOnChain();
 
             this.updateProposalsState();
 
