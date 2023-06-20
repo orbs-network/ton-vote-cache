@@ -29,14 +29,7 @@ export class State {
     }
 
     getDaos() {
-
-        // const daos = this.daosData.daos;
         return Array.from(this.daosData.daos.values());
-
-        // if (daos.size == 0) return {};
-
-        // const daosSlice = Array.from(daos.values()).slice(0, daos.size);
-        // return daosSlice.reverse()
     }
 
     getDaoByAddress(daoAddress: string) {

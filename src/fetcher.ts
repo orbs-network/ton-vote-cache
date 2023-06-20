@@ -224,7 +224,7 @@ export class Fetcher {
                     }
 
                     daoData.nextProposalId = newProposals.endProposalId;
-                    const sortedProposals = newProposals.proposalAddresses!.sort((a, b) => this.proposalsData.get(a)?.metadata.id! - this.proposalsData.get(b)?.metadata.id!);
+                    const sortedProposals = newProposals.proposalAddresses!.sort((a, b) => this.proposalsData.get(b)?.metadata.id! - this.proposalsData.get(a)?.metadata.id!);
                     daoData.daoProposals = [...daoData.daoProposals, ...sortedProposals];
                     this.daosData.daos.set(daoAddress, daoData);
                 
