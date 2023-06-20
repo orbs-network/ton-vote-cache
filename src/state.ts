@@ -1,6 +1,7 @@
 import { DaosData, NftHolders, ProposalsData, ProposalVotingData } from "./types";
 import { ProposalMetadata } from "ton-vote-contracts-sdk";
 // import * as Logger from './logger';
+import _ from 'lodash';
 
 
 export class State {
@@ -29,12 +30,13 @@ export class State {
 
     getDaos() {
 
-        const daos = this.daosData.daos;
+        // const daos = this.daosData.daos;
+        return Array.from(this.daosData.daos.values());
 
-        if (daos.size == 0) return {};
+        // if (daos.size == 0) return {};
 
-        const daosSlice = Array.from(daos.values()).slice(0, daos.size);
-        return daosSlice.reverse()
+        // const daosSlice = Array.from(daos.values()).slice(0, daos.size);
+        // return daosSlice.reverse()
     }
 
     getDaoByAddress(daoAddress: string) {
@@ -90,7 +92,7 @@ export class State {
     }
 
     setDaosData(daosData: DaosData) {
-        this.daosData = { ...daosData };
+        this.daosData = _.cloneDeep(daosData);
     }
 
     setProposalData(proposalAddress: string, proposalData: {
@@ -103,11 +105,11 @@ export class State {
     }
 
     setNftHolders(nftHolders: NftHolders) {
-        this.nftHolders = nftHolders;
+        this.nftHolders = _.cloneDeep(nftHolders);
     }
 
     setProposalsData(proposalsData: ProposalsData) {
-        this.proposalsData = proposalsData;
+        this.proposalsData = _.cloneDeep(proposalsData);
     }
 
     setUpdateTime() {

@@ -85,7 +85,6 @@ export function normalizeAddress(address: string): string {
 
 export async function sendNotification(message: string) {
   if (!process.env.TELEGRAM_NOTIF_GROUP_TOKEN || !process.env.TELEGRAM_NOTIF_GROUP_CHAT_ID) {
-    console.log('Telegram channel is not configured sending messageto console log: ', message);  
     return;  
   }
 
@@ -102,4 +101,28 @@ export async function sendNotification(message: string) {
   } catch (error) {
       console.error('Error sending notification:', error);
   }
+}
+
+export async function getOrderedDaosByPriority(): Promise<string[]> {
+  
+  const file_url = 'https://raw.githubusercontent.com/orbs-network/ton-vote-cache/main/src/ordered-daos.ts';
+
+  try {
+    const response = await axios.get(file_url, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
+    return response.data
+      .split('\n')
+      .map((line: string) => line.trim())
+      .filter((line: string) => line !== ''); 
+
+  } catch (error) {
+    console.error('Error reading file:', error);
+    return [];
+  }
+  
 }
