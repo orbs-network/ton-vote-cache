@@ -105,7 +105,7 @@ export async function sendNotification(message: string) {
 
 export async function getOrderedDaosByPriority(): Promise<string[]> {
   
-  const file_url = 'https://raw.githubusercontent.com/orbs-network/ton-vote-cache/main/src/ordered-daos.ts';
+  const file_url = 'https://raw.githubusercontent.com/orbs-network/ton-vote-cache/main/src/ordered-daos.text';
 
   try {
     const response = await axios.get(file_url, {
