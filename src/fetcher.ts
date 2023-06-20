@@ -136,39 +136,45 @@ export class Fetcher {
     }
 
     async updateDaosStateIfChangedOnChain() {
-        
         console.log(`updateDaosStateIfChangedOnChain started`);
-                        
+    
         if (this.daosData.daos.size == 0) return;
-
+    
         const batchSize = UPDATE_DAOS_BATCH_SIZE; 
         const daos = Array.from(this.daosData.daos.keys());
         const chunks = [];
         for (let i = 0; i < daos.length; i += batchSize) {
-          chunks.push(daos.slice(i, i + batchSize));
+            chunks.push(daos.slice(i, i + batchSize));
         }
-        
+    
         for (const chunk of chunks) {
-            await Promise.all(chunk.map(async (daoAddress) => {
+            const results = await Promise.allSettled(chunk.map(async (daoAddress) => {
                 const daoState = await TonVoteSdk.getDaoState(this.client, daoAddress);
-
+    
                 if (_.isEqual(daoState, this.daosData.daos.get(daoAddress))) {
                     return;
                 }
-
+    
                 console.log(`fetching new Dao Metadata for ${daoAddress} ...`);
-                
+    
                 const metadataArgs = await TonVoteSdk.getDaoMetadata(this.client, daoState.metadata);
-                
+    
                 let daoToUpdate = this.daosData.daos.get(daoAddress);
                 daoToUpdate!.daoMetadata = {metadataAddress: daoState.metadata, metadataArgs: metadataArgs};
                 daoToUpdate!.daoRoles = {owner: daoState.owner, proposalOwner: daoState.proposalOwner};
-
+    
                 console.log(`Dao Metadata for ${daoAddress} was updated successfully`);
             }));
+    
+            // handle individual results
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    console.error(`Failed to process daoAddress at index ${index} with reason: ${result.reason}`);
+                }
+            });
         }
     }
-        
+      
     async updateDaosProposals() {
 
         console.log(`updateDaosProposals started`);

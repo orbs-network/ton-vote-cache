@@ -126,3 +126,8 @@ export async function getOrderedDaosByPriority(): Promise<string[]> {
   }
   
 }
+
+export async function isVerifiedDao(daoAddr: string, websiteUrl: string) {
+    const response = await axios.get(websiteUrl + "ton-vote.txt");
+    return response.data == daoAddr;
+}
