@@ -2,7 +2,7 @@ import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
 import { MetadataArgs, DaoRoles, ReleaseMode } from "ton-vote-contracts-sdk";
-import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData } from "./types";
+import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData, ProposalFetchingErrorReason } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
 import { getOrderedDaosByPriority, sendNotification } from "./helpers";
@@ -42,7 +42,7 @@ export class Fetcher {
     async init() {
         await sendNotification('Ton Vote Cache Server started');
         // this.client = await TonVoteSdk.getClientV2();
-        this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC', timeout: 15000}); 
+        this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
         this.client4 = await TonVoteSdk.getClientV4();
 
         console.log('starting with masterchainInfo: ', await this.client.getMasterchainInfo())
@@ -320,27 +320,27 @@ export class Fetcher {
     async updatePendingProposalData() {
         
         console.log(`updatePendingProposalData started`);
-        
-        await Promise.all([...this.proposalAddrWithMissingNftCollection].map(async (proposalAddr) => {
+       
+        for (const proposalAddr of [...this.proposalAddrWithMissingNftCollection]) {
             let proposalData = this.proposalsData.get(proposalAddr);
-
+        
             if (!(proposalAddr in this.nftHolders)) {
-
                 try {
                     console.log(`fetching nft items data for proposalAddr ${proposalAddr}`);
                     this.nftHolders[proposalAddr] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
-    
                 } catch (error) {
-                    console.log(`failed to fetch nft items for proposal ${proposalAddr}`);
-                    return;
+                    console.log(`failed to fetch nft items for proposal ${proposalAddr}: ${error}`);
+                    proposalData!.fetchErrorReason = ProposalFetchingErrorReason.FETCH_NFT_ERROR;
+                    this.proposalsData.set(proposalAddr, proposalData!);
+                    continue;
                 }
             } else {
-                console.log(`nft items already exist in nftHolder, skiping fetching data proposalAddr ${proposalAddr}`);
+                console.log(`nft items already exist in nftHolder, skipping fetching data proposalAddr ${proposalAddr}`);
             }
-
+        
             console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: `, this.nftHolders[proposalAddr]);
             this.proposalAddrWithMissingNftCollection.delete(proposalAddr);
-        }));          
+        }                        
     }
 
     async updateProposalVotingData() {
@@ -358,6 +358,11 @@ export class Fetcher {
 
             if (!proposalData) {
                 console.log(`unexpected error: proposalAddr ${proposalAddr} was not found on proposalData`);
+                return;
+            }
+
+            if (proposalData!.fetchErrorReason != undefined) {
+                console.log(`Not all data for proposal ${proposalAddr} was fetched properly, fetch error (${proposalData!.fetchErrorReason} was found), skipping voting data update`);
                 return;
             }
 

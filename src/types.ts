@@ -20,11 +20,16 @@ export type ProposalsByState = {
 
 export type ProposalAddrWithMissingNftCollection = Set<string>
 
+export enum ProposalFetchingErrorReason {
+    FETCH_NFT_ERROR = 0
+}
+
 export type ProposalsData = Map<string, {
         daoAddress: string,
         proposalAddress: string, 
         metadata: ProposalMetadata,
-        votingData?: ProposalVotingData
+        votingData?: ProposalVotingData,
+        fetchErrorReason?: ProposalFetchingErrorReason
 }>
 
 export interface NftHolders {
