@@ -2,7 +2,7 @@ import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
 import { MetadataArgs, DaoRoles, ReleaseMode } from "ton-vote-contracts-sdk";
-import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData, ProposalFetchingErrorReason } from "./types";
+import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
 import { getOrderedDaosByPriority, sendNotification } from "./helpers";
@@ -34,6 +34,8 @@ export class Fetcher {
     private nftHolders!: NftHolders;
 
     private proposalAddrWithMissingNftCollection: ProposalAddrWithMissingNftCollection = new Set();
+
+    private status: FetcherStatus = 'init';
 
     constructor(state: State) {
         this.state = state;
@@ -468,11 +470,14 @@ export class Fetcher {
 
             console.log(`Stats: ${this.daosData.daos.size} Daos, ${this.proposalsData.size} Proposals`);
             console.log(`Finished in ${(Date.now()-startTime)/1000} seconds`); 
-            console.log(`------------------------------------------------------------`);                       
+            console.log(`------------------------------------------------------------`);    
+            
+            this.status = 'synced';
 
         } catch (error) {
 
             this.finished = true;            
+            this.status = 'error';
             console.log('unexpected error: ', (error as Error).stack);
             await sendNotification(`unexpected error: ${(error as Error).stack}`);
             console.log(`------------------------------------------------------------`);                       
@@ -487,4 +492,7 @@ export class Fetcher {
         return this.getProposalAddrWithMissingNftCollection;
     }
 
+    getStatus() {
+        return this.status;
+    }
 }

@@ -67,6 +67,10 @@ export function serve() {
     response.status(200).json(fetcher.getProposalsByState());
   });
 
+  app.get('/fetcherStatus', (_request, response) => {
+    response.status(200).json(fetcher.getStatus());
+  });
+
   app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
     if (error instanceof Error) {
       Logger.error(`Error response to ${req.url}: ${errorString(error)}`);
