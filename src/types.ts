@@ -20,7 +20,7 @@ export type ProposalsByState = {
 
 export type ProposalAddrWithMissingNftCollection = Set<string>
 
-export type FetcherStatus = 'init' | 'synced' | 'error';
+export type FetcherStatus = 'Init' | 'Synced' | 'Error';
 
 export enum ProposalFetchingErrorReason {
     FETCH_NFT_ERROR = 0

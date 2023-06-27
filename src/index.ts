@@ -19,7 +19,7 @@ export function serve() {
   const fetcher = new Fetcher(state);
 
   app.use((_req, res, next) => {
-    res.set('Status', fetcher.getStatus());
+    res.set('FetcherStatus', fetcher.getStatus());
     next();
   });
   
@@ -70,10 +70,6 @@ export function serve() {
 
   app.get('/proposalsByState', (_request, response) => {
     response.status(200).json(fetcher.getProposalsByState());
-  });
-
-  app.get('/fetcherStatus', (_request, response) => {
-    response.status(200).json(fetcher.getStatus());
   });
 
   app.use((error: Error, req: Request, res: Response, next: NextFunction) => {

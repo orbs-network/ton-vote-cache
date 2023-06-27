@@ -35,7 +35,7 @@ export class Fetcher {
 
     private proposalAddrWithMissingNftCollection: ProposalAddrWithMissingNftCollection = new Set();
 
-    private status: FetcherStatus = 'init';
+    private status: FetcherStatus = 'Init';
 
     constructor(state: State) {
         this.state = state;
@@ -472,12 +472,12 @@ export class Fetcher {
             console.log(`Finished in ${(Date.now()-startTime)/1000} seconds`); 
             console.log(`------------------------------------------------------------`);    
             
-            this.status = 'synced';
+            this.status = 'Synced';
 
         } catch (error) {
 
             this.finished = true;            
-            this.status = 'error';
+            this.status = 'Error';
             console.log('unexpected error: ', (error as Error).stack);
             await sendNotification(`unexpected error: ${(error as Error).stack}`);
             console.log(`------------------------------------------------------------`);                       
