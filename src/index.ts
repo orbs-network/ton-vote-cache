@@ -19,7 +19,7 @@ export function serve() {
   const fetcher = new Fetcher(state);
 
   app.use((_req, res, next) => {
-    res.set('FetcherStatus', fetcher.getStatus());
+    res.set('Fetcher-Status', fetcher.getStatus());
     next();
   });
   
