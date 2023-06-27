@@ -18,6 +18,11 @@ export function serve() {
   const state = new State();
   const fetcher = new Fetcher(state);
 
+  app.use((_req, res, next) => {
+    res.set('Status', fetcher.getStatus());
+    next();
+  });
+  
   app.get('/daos', (_request, response) => {
     response.status(200).json(state.getDaos());
   });
