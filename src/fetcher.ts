@@ -21,7 +21,12 @@ const PROPOSAL_METADATA_BATCH_SIZE = 35;
 
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
 
-const DB_PATH = '/var/ton-vote-db/'
+const TON_VOTE_DB_PATH = process.env.TON_VOTE_DB_PATH || '/tmp/ton-vote-db'
+
+if (!fs.existsSync(TON_VOTE_DB_PATH)) {
+    fs.mkdirSync(TON_VOTE_DB_PATH);
+    log(`${TON_VOTE_DB_PATH} directory was created successfully`);
+}
 
 export class Fetcher {
 
@@ -59,11 +64,11 @@ export class Fetcher {
     readLocalDb() {
 
         try {
-          const fileNames = fs.readdirSync(DB_PATH);
+          const fileNames = fs.readdirSync(TON_VOTE_DB_PATH);
           
           fileNames.forEach((fileName) => {
             
-            const filePath = `${DB_PATH}/${fileName}`;
+            const filePath = `${TON_VOTE_DB_PATH}/${fileName}`;
             
             try {
               const fileContents = fs.readFileSync(filePath, 'utf8');
@@ -439,7 +444,7 @@ export class Fetcher {
             log(`setting new proposalData for proposal ${proposalAddr}`);
 
             if (this.proposalsByState.ended.has(proposalAddr)) {
-                const filePath = DB_PATH + `${proposalAddr}.json`;
+                const filePath = TON_VOTE_DB_PATH + `/${proposalAddr}.json`;
                 const jsonString = JSON.stringify(proposalData, replacer);
 
                 fs.writeFileSync(filePath, jsonString);
