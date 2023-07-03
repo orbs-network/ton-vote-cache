@@ -131,3 +131,19 @@ export async function isVerifiedDao(daoAddr: string, websiteUrl: string) {
     const response = await axios.get(websiteUrl + "ton-vote.txt");
     return response.data == daoAddr;
 }
+
+export function replacer(_key: string, value: any) {
+  if (typeof value === 'bigint') {
+    return { type: 'BigInt', value: value.toString() };
+  } else {
+    return value;
+  }
+}
+
+export function reviver(_key: string, value: any) {
+  if (value && value.type === 'BigInt') {
+    return BigInt(value.value);
+  } else {
+    return value;
+  }
+}

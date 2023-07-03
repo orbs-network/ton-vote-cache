@@ -84,7 +84,7 @@ export function serve() {
     return next(error);
   });
 
-  fetcher.init();
+  fetcher.init().then(() => {Logger.log('fetcher init completed')});
   const fetcherSyncTask = new TaskLoop(() => fetcher.run(), 60 * 1000);  
   fetcherSyncTask.start();
 
