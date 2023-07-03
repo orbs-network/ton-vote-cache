@@ -239,7 +239,7 @@ export class Fetcher {
                 
                 if (newProposals.proposalAddresses) {
                     
-                    log(`Dao at address ${daoAddress}: ${newProposals.proposalAddresses?.length} newProposals: ${newProposals}`);
+                    log(`Dao at address ${daoAddress}: ${newProposals.proposalAddresses?.length} newProposals: ${JSON.stringify(newProposals)}`);
                     const allPromises: Promise<void>[] = [];
                     const chunks = [];
                     const proposalAddresses = newProposals.proposalAddresses;
