@@ -12,6 +12,13 @@ export type ProposalVotingData = {
     proposalResult: ProposalResult;
 }
 
+export enum ProposalState {
+    undefined = 0,
+    pending = 1,
+    active = 2,
+    ended = 3
+}
+
 export type ProposalsByState = {
     pending: Set<string>;    
     active: Set<string>;

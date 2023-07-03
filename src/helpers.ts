@@ -1,5 +1,8 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { ProposalMetadata } from "ton-vote-contracts-sdk";
+import { log } from './logger';
+import { ProposalState } from './types';
 
 dotenv.config();
 
@@ -146,4 +149,28 @@ export function reviver(_key: string, value: any) {
   } else {
     return value;
   }
+}
+
+export function getProposalState(proposalAddress: string, metadata: ProposalMetadata) {
+
+  const now = Date.now() / 1000;
+
+  if (!metadata) {
+      log(`unexpected error: could not find metadata for proposal ${proposalAddress}`);
+      return ProposalState.undefined;
+  }
+
+  if (now < metadata.proposalStartTime) {                
+    return ProposalState.pending;
+  }
+
+  if (metadata.proposalStartTime <= now && now < metadata.proposalEndTime) {                
+    return ProposalState.active;
+  }
+
+  if (metadata.proposalEndTime <= now) {
+    return ProposalState.ended;
+  }  
+
+  return ProposalState.undefined;
 }

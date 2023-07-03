@@ -75,7 +75,14 @@ export function serve() {
   });
 
   app.get('/proposalsByState', (_request, response) => {
-    response.status(200).json(fetcher.getProposalsByState());
+    const proposalsByState = fetcher.getProposalsByState();
+    const proposalsByStateForJson = {
+      pending: Array.from(proposalsByState.pending),
+      active: Array.from(proposalsByState.active),
+      ended: Array.from(proposalsByState.ended)
+    };
+
+    response.status(200).json(proposalsByStateForJson);
   });
 
   app.get('/version', (_request, response) => {

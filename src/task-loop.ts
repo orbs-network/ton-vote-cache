@@ -30,7 +30,6 @@ export class TaskLoop {
   };
 
   start = () => {
-    sendNotification('Task-loop start was called');
     if (!this.started) {
       this.started = true;
       this.scheduleNextRun();
@@ -39,7 +38,6 @@ export class TaskLoop {
 
   stop = () => {
     this.started = false;
-    sendNotification('Task-loop stop was called');
     if (this.handle !== undefined) {
       clearTimeout(this.handle);
     }

@@ -2,10 +2,10 @@ import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
 import { MetadataArgs, DaoRoles, ReleaseMode } from "ton-vote-contracts-sdk";
-import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus } from "./types";
+import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus, ProposalState } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
-import { getOrderedDaosByPriority, replacer, reviver, sendNotification } from "./helpers";
+import { getOrderedDaosByPriority, getProposalState, replacer, reviver, sendNotification } from "./helpers";
 import fs from 'fs';
 import {log, error} from './logger';
 
@@ -252,8 +252,17 @@ export class Fetcher {
                     for (const chunk of chunks) {
                         chunk.forEach(proposalAddress => {
 
-                            if (this.proposalsData.has(proposalAddress)) return;
+                            if (this.proposalsData.has(proposalAddress)) {
+                                let proposalState = getProposalState(proposalAddress, this.proposalsData.get(proposalAddress)?.metadata!)
+
+                                if (proposalState == ProposalState.pending) this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
+                                else if (proposalState == ProposalState.active) this.proposalsByState.active = this.proposalsByState.active.add(proposalAddress);
+                                else if (proposalState == ProposalState.ended) this.proposalsByState.ended = this.proposalsByState.ended.add(proposalAddress);                                
+                                return;
+                            }
                             
+                            if (this.status != 'Init') sendNotification(`new proposal was created${proposalAddress}`);
+
                             const promise = (async () => {
                                 log(`fetching info from proposal at address ${proposalAddress}`);
                                 const proposalMetadata = await TonVoteSdk.getProposalMetadata(this.client, this.client4, proposalAddress);
@@ -314,9 +323,10 @@ export class Fetcher {
         }                            
     }
 
-    fetchProposalsState() {
 
-        log(`fetchProposalsState started`);
+    updateProposalsState() {
+
+        log(`updateProposalsState started`);
 
         const now = Date.now() / 1000;
 
@@ -325,7 +335,7 @@ export class Fetcher {
             const metadata = this.proposalsData.get(proposalAddress)?.metadata;
 
             if (!metadata) {
-                log(`unexpected error: could not find metadata at propsal ${proposalAddress}`);
+                log(`unexpected error: could not find metadata at proposal ${proposalAddress}`);
                 return;                
             }
 
@@ -347,7 +357,7 @@ export class Fetcher {
             const metadata = this.proposalsData.get(proposalAddress)?.metadata;
 
             if (!metadata) {
-                log(`unexpected error: could not find metadata at propsal ${proposalAddress}`);
+                log(`unexpected error: could not find metadata at proposal ${proposalAddress}`);
                 return;                
             }
 
@@ -358,6 +368,8 @@ export class Fetcher {
             }
 
         });         
+
+        console.log(this.proposalsByState);
     }
 
     async fetchNftCollections() {
@@ -482,10 +494,6 @@ export class Fetcher {
 
     }
 
-    getProposalsByState() {
-        return this.proposalsByState;
-    }
-
     async run() {
 
         try {
@@ -502,7 +510,7 @@ export class Fetcher {
 
             await this.fetchProposalsMetadata();
 
-            this.fetchProposalsState();
+            this.updateProposalsState();
 
             await this.fetchNftCollections();
 
@@ -536,4 +544,9 @@ export class Fetcher {
     getStatus() {
         return this.status;
     }
+
+    getProposalsByState() {
+        return this.proposalsByState;
+    }
+
 }
