@@ -253,8 +253,7 @@ export class Fetcher {
                         chunk.forEach(proposalAddress => {
 
                             if (this.proposalsData.has(proposalAddress)) {
-                                let proposalState = getProposalState(proposalAddress, this.proposalsData.get(proposalAddress)?.metadata!)
-
+                                let proposalState = getProposalState(proposalAddress, this.proposalsData.get(proposalAddress)?.metadata!)                                
                                 if (proposalState == ProposalState.pending) this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
                                 else if (proposalState == ProposalState.active) this.proposalsByState.active = this.proposalsByState.active.add(proposalAddress);
                                 else if (proposalState == ProposalState.ended) this.proposalsByState.ended = this.proposalsByState.ended.add(proposalAddress);                                
