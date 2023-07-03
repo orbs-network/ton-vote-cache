@@ -5,6 +5,12 @@ import { TaskLoop } from './task-loop';
 import * as Logger from './logger';
 import { State } from './state';
 import { Fetcher } from './fetcher';
+import path from 'path';
+import fs from 'fs';
+
+const packageJsonPath = path.join(__dirname, '../package.json');
+const packageJsonData = fs.readFileSync(packageJsonPath, 'utf-8');
+const packageJson = JSON.parse(packageJsonData);
 
 const SOCKET_TIMEOUT_SEC = 60;
 const PORT = Number(process.env.PORT) || 3000;
@@ -70,6 +76,10 @@ export function serve() {
 
   app.get('/proposalsByState', (_request, response) => {
     response.status(200).json(fetcher.getProposalsByState());
+  });
+
+  app.get('/version', (_request, response) => {
+    response.status(200).json(packageJson.version);
   });
 
   app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
