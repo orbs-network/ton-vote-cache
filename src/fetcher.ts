@@ -260,7 +260,7 @@ export class Fetcher {
                                 return;
                             }
                             
-                            if (this.status != 'Init') sendNotification(`new proposal was created${proposalAddress}`);
+                            if (this.status != 'Init') sendNotification(`new proposal was created ${proposalAddress}`);
 
                             const promise = (async () => {
                                 log(`fetching info from proposal at address ${proposalAddress}`);
@@ -362,7 +362,7 @@ export class Fetcher {
 
             if (metadata.proposalStartTime <= now && metadata.proposalEndTime <= now) {
                 this.proposalsByState.ended.add(proposalAddress);
-                this.proposalsByState.pending.delete(proposalAddress);
+                this.proposalsByState.active.delete(proposalAddress);
                 log(`proposal ${proposalAddress} was moved to ended proposals`);
             }
 
