@@ -2,10 +2,12 @@ import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
 import { MetadataArgs, DaoRoles, ReleaseMode } from "ton-vote-contracts-sdk";
-import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData } from "./types";
+import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus, ProposalState } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
-import { sendNotification } from "./helpers";
+import { getOrderedDaosByPriority, getProposalState, replacer, reviver, sendNotification } from "./helpers";
+import fs from 'fs';
+import {log, error} from './logger';
 
 
 dotenv.config();
@@ -19,6 +21,12 @@ const PROPOSAL_METADATA_BATCH_SIZE = 35;
 
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
 
+const TON_VOTE_DB_PATH = process.env.TON_VOTE_DB_PATH || '/tmp/ton-vote-db'
+
+if (!fs.existsSync(TON_VOTE_DB_PATH)) {
+    fs.mkdirSync(TON_VOTE_DB_PATH);
+    log(`${TON_VOTE_DB_PATH} directory was created successfully`);
+}
 
 export class Fetcher {
 
@@ -26,7 +34,6 @@ export class Fetcher {
     private client4!: TonClient4;
     private state: State;
     private fetchUpdate: {[proposalAddress: string]: number} = {};
-    private finished: boolean = true;
     private proposalsByState: ProposalsByState = {pending: new Set(), active: new Set(), ended: new Set()};
 
     private daosData!: DaosData;
@@ -35,6 +42,8 @@ export class Fetcher {
 
     private proposalAddrWithMissingNftCollection: ProposalAddrWithMissingNftCollection = new Set();
 
+    private status: FetcherStatus = 'Init';
+
     constructor(state: State) {
         this.state = state;
     }
@@ -42,15 +51,50 @@ export class Fetcher {
     async init() {
         await sendNotification('Ton Vote Cache Server started');
         this.client = await TonVoteSdk.getClientV2();
+        // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
         this.client4 = await TonVoteSdk.getClientV4();
 
-        console.log('starting with masterchainInfo: ', await this.client.getMasterchainInfo())
+        log(`starting with masterchainInfo: ${JSON.stringify(await this.client.getMasterchainInfo())}`)
         await this.updateRegistry();
+
+        this.getState();
+        this.readLocalDb();        
+    }
+
+    readLocalDb() {
+
+        try {
+          const fileNames = fs.readdirSync(TON_VOTE_DB_PATH);
+          
+          fileNames.forEach((fileName) => {
+            
+            const filePath = `${TON_VOTE_DB_PATH}/${fileName}`;
+            
+            try {
+              const fileContents = fs.readFileSync(filePath, 'utf8');
+              const jsonData = JSON.parse(fileContents, reviver);
+        
+              log(`Extrated data from ${fileName}`);
+                                          
+              this.proposalsData.set(fileName.replace('.json', ''), jsonData);
+
+            } catch (err) {
+              error(`Error reading or parsing file ${fileName}: ${err}`);
+            }
+
+          });
+
+        } catch (err) {
+          error(`Error reading the directory: ${err}`);
+        }
+
+        this.state.setProposalsData(this.proposalsData);                        
     }
 
     async updateRegistry() {
+
         const registry = await TonVoteSdk.getRegistry(this.client, RELEASE_MODE);
-        console.log(`registry: `, registry);
+        log(`registry: ${registry}`);
         
         if (!registry) throw('Please deploy registry before starting ton vote cache server');
         
@@ -72,15 +116,15 @@ export class Fetcher {
 
     async fetchNewDaos() {
         
-        console.log(`fetchNewDaos started`);
+        log(`fetchNewDaos started`);
         
-        console.log(`daosData.nextDaoId = ${this.daosData.nextDaoId}`);
+        log(`daosData.nextDaoId = ${this.daosData.nextDaoId}`);
         
         let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, this.daosData.nextDaoId, DAOS_BATCH_SIZE, 'asc');
         
         if (newDaos.daoAddresses.length == 0) return;
 
-        console.log(`${newDaos.daoAddresses.length} new daos will be added: `, newDaos.daoAddresses);
+        log(`${newDaos.daoAddresses.length} new daos will be added: ${newDaos.daoAddresses}`);
 
         const batchSize = UPDATE_DAOS_BATCH_SIZE; 
         const daos = newDaos.daoAddresses;
@@ -94,7 +138,7 @@ export class Fetcher {
             const daoState = await TonVoteSdk.getDaoState(this.client, daoAddress);
             const metadataArgs = await TonVoteSdk.getDaoMetadata(this.client, daoState.metadata);
             
-            console.log(`inserting daoState and metadata for dao at address ${daoAddress}: `, daoState, metadataArgs);
+            log(`inserting daoState and metadata for dao at address ${daoAddress}`);
             
             this.daosData.daos.set(daoAddress, {
               daoAddress: daoAddress,
@@ -107,7 +151,6 @@ export class Fetcher {
           }));
         }
         
-        this.daosData.nextDaoId = newDaos.endDaoId;
         const sortedDaos = new Map<string, {
             daoAddress: string,
             daoId: number,
@@ -116,47 +159,68 @@ export class Fetcher {
             nextProposalId: number,
             daoProposals: string[]
         }>(Array.from(this.daosData.daos.entries()).sort((a, b) => a[1].daoId - b[1].daoId));
-                
-        this.daosData.daos = sortedDaos;
+
+        const orderedDaosFromFile: string[] = await getOrderedDaosByPriority();
+        
+        let mergedDaosData: DaosData = {nextDaoId: newDaos.endDaoId, daos: new Map()};
+        for (const key of orderedDaosFromFile) {
+          if (sortedDaos.has(key)) {
+            mergedDaosData.daos.set(key, sortedDaos.get(key)!);
+            sortedDaos.delete(key);
+          }
+        }
+      
+        for (const [key, value] of sortedDaos) {
+          mergedDaosData.daos.set(key, value);
+        }
+              
+        this.daosData.daos = mergedDaosData.daos;
+        this.daosData.nextDaoId = mergedDaosData.nextDaoId;
     }
 
-    async updateDaosStateIfChangedOnChain() {
-        
-        console.log(`updateDaosStateIfChangedOnChain started`);
-                        
+    async fetchDaosState() {
+        log(`fetchDaosState started`);
+    
         if (this.daosData.daos.size == 0) return;
-
+    
         const batchSize = UPDATE_DAOS_BATCH_SIZE; 
         const daos = Array.from(this.daosData.daos.keys());
         const chunks = [];
         for (let i = 0; i < daos.length; i += batchSize) {
-          chunks.push(daos.slice(i, i + batchSize));
+            chunks.push(daos.slice(i, i + batchSize));
         }
-        
+    
         for (const chunk of chunks) {
-            await Promise.all(chunk.map(async (daoAddress) => {
+            const results = await Promise.allSettled(chunk.map(async (daoAddress) => {
                 const daoState = await TonVoteSdk.getDaoState(this.client, daoAddress);
-
+    
                 if (_.isEqual(daoState, this.daosData.daos.get(daoAddress))) {
                     return;
                 }
-
-                console.log(`fetching new Dao Metadata for ${daoAddress} ...`);
-                
+    
+                log(`fetching new Dao Metadata for ${daoAddress} ...`);
+    
                 const metadataArgs = await TonVoteSdk.getDaoMetadata(this.client, daoState.metadata);
-                
+    
                 let daoToUpdate = this.daosData.daos.get(daoAddress);
                 daoToUpdate!.daoMetadata = {metadataAddress: daoState.metadata, metadataArgs: metadataArgs};
                 daoToUpdate!.daoRoles = {owner: daoState.owner, proposalOwner: daoState.proposalOwner};
-
-                console.log(`Dao Metadata for ${daoAddress} was updated successfully`);
+    
+                log(`Dao Metadata for ${daoAddress} was updated successfully`);
             }));
+    
+            // handle individual results
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    error(`Failed to process daoAddress at index ${index} with reason: ${result.reason}`);
+                }
+            });
         }
     }
-        
-    async updateDaosProposals() {
+      
+    async fetchNewProposals() {
 
-        console.log(`updateDaosProposals started`);
+        log(`fetchNewProposals started`);
 
         const daos = Array.from(this.daosData.daos.entries());
         const daoBatchSize = DAOS_BATCH_SIZE;
@@ -170,12 +234,12 @@ export class Fetcher {
             
             await Promise.all(daoBatch.map(async ([daoAddress, daoData]) => {
                 
-                console.log(`fetching proposals for dao ${daoAddress}`);
+                log(`fetching proposals for dao ${daoAddress}`);
                 const newProposals = await TonVoteSdk.getDaoProposals(this.client, daoAddress, daoData.nextProposalId, PROPOSALS_BATCH_SIZE, 'asc');
                 
                 if (newProposals.proposalAddresses) {
                     
-                    console.log(`Dao at address ${daoAddress}: ${newProposals.proposalAddresses?.length} newProposals: `, newProposals);
+                    log(`Dao at address ${daoAddress}: ${newProposals.proposalAddresses?.length} newProposals: ${JSON.stringify(newProposals)}`);
                     const allPromises: Promise<void>[] = [];
                     const chunks = [];
                     const proposalAddresses = newProposals.proposalAddresses;
@@ -187,8 +251,19 @@ export class Fetcher {
         
                     for (const chunk of chunks) {
                         chunk.forEach(proposalAddress => {
+
+                            if (this.proposalsData.has(proposalAddress)) {
+                                let proposalState = getProposalState(proposalAddress, this.proposalsData.get(proposalAddress)?.metadata!)                                
+                                if (proposalState == ProposalState.pending) this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
+                                else if (proposalState == ProposalState.active) this.proposalsByState.active = this.proposalsByState.active.add(proposalAddress);
+                                else if (proposalState == ProposalState.ended) this.proposalsByState.ended = this.proposalsByState.ended.add(proposalAddress);                                
+                                return;
+                            }
+                            
+                            if (this.status != 'Init') sendNotification(`new proposal was created ${proposalAddress}`);
+
                             const promise = (async () => {
-                                console.log(`fetching info from proposal at address ${proposalAddress}`);
+                                log(`fetching info from proposal at address ${proposalAddress}`);
                                 const proposalMetadata = await TonVoteSdk.getProposalMetadata(this.client, this.client4, proposalAddress);
                                 this.proposalsData.set(proposalAddress, {
                                     daoAddress: daoAddress,
@@ -198,7 +273,7 @@ export class Fetcher {
                                 this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
                                 if ((proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection) || 
                                 (proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection_1Wallet1Vote)) {
-                                    console.log(`adding proposal address ${proposalAddress} to missing nft collections`);
+                                    log(`adding proposal address ${proposalAddress} to missing nft collections`);
                                     this.proposalAddrWithMissingNftCollection.add(proposalAddress)
                                 }
                             })();
@@ -209,21 +284,21 @@ export class Fetcher {
                     }
 
                     daoData.nextProposalId = newProposals.endProposalId;
-                    const sortedProposals = newProposals.proposalAddresses!.sort((a, b) => this.proposalsData.get(a)?.metadata.id! - this.proposalsData.get(b)?.metadata.id!);
+                    const sortedProposals = newProposals.proposalAddresses!.sort((a, b) => this.proposalsData.get(b)?.metadata.id! - this.proposalsData.get(a)?.metadata.id!);
                     daoData.daoProposals = [...daoData.daoProposals, ...sortedProposals];
                     this.daosData.daos.set(daoAddress, daoData);
                 
                 } else {
-                    console.log(`no proposals found for Dao at address ${daoAddress}`);
+                    log(`no proposals found for Dao at address ${daoAddress}`);
                 }
 
             }));
         }               
     }
 
-    async updateProposalMetadataIfChangedOnChain() {
+    async fetchProposalsMetadata() {
 
-        console.log(`updateProposalMetadataIfChangedOnChain started`);
+        log(`fetchProposalsMetadata started`);
 
         const pendingProposalsArray = [...this.proposalsByState.pending];
         const batchSize = 50;
@@ -236,7 +311,7 @@ export class Fetcher {
         
             if (_.isEqual(proposalMetadata, this.proposalsData.get(proposalAddress)?.metadata)) return;
         
-            console.log(`proposal metadata at ${this.proposalsData.get(proposalAddress)?.metadata} was changed`);
+            log(`proposal metadata at ${this.proposalsData.get(proposalAddress)?.metadata} was changed`);
         
             this.proposalsData.set(proposalAddress, {
               daoAddress: this.proposalsData.get(proposalAddress)?.daoAddress!,
@@ -247,9 +322,10 @@ export class Fetcher {
         }                            
     }
 
+
     updateProposalsState() {
 
-        console.log(`updateProposalsState started`);
+        log(`updateProposalsState started`);
 
         const now = Date.now() / 1000;
 
@@ -258,20 +334,20 @@ export class Fetcher {
             const metadata = this.proposalsData.get(proposalAddress)?.metadata;
 
             if (!metadata) {
-                console.log(`unexpected error: could not find metadata at propsal ${proposalAddress}`);
+                log(`unexpected error: could not find metadata at proposal ${proposalAddress}`);
                 return;                
             }
 
             if (metadata.proposalStartTime <= now && metadata.proposalEndTime >= now) {                
                 this.proposalsByState.active.add(proposalAddress);
                 this.proposalsByState.pending.delete(proposalAddress);
-                console.log(`proposal ${proposalAddress} was moved to active proposals`);
+                log(`proposal ${proposalAddress} was moved to active proposals`);
             }
 
             else if (metadata.proposalStartTime <= now && metadata.proposalEndTime <= now) {
                 this.proposalsByState.ended.add(proposalAddress);
                 this.proposalsByState.pending.delete(proposalAddress);
-                console.log(`proposal ${proposalAddress} was moved to ended proposals`);
+                log(`proposal ${proposalAddress} was moved to ended proposals`);
             }
         }); 
 
@@ -280,44 +356,50 @@ export class Fetcher {
             const metadata = this.proposalsData.get(proposalAddress)?.metadata;
 
             if (!metadata) {
-                console.log(`unexpected error: could not find metadata at propsal ${proposalAddress}`);
+                log(`unexpected error: could not find metadata at proposal ${proposalAddress}`);
                 return;                
             }
 
             if (metadata.proposalStartTime <= now && metadata.proposalEndTime <= now) {
                 this.proposalsByState.ended.add(proposalAddress);
-                this.proposalsByState.pending.delete(proposalAddress);
-                console.log(`proposal ${proposalAddress} was moved to ended proposals`);
+                this.proposalsByState.active.delete(proposalAddress);
+                log(`proposal ${proposalAddress} was moved to ended proposals`);
             }
 
-        }); 
+        });         
 
         console.log(this.proposalsByState);
-        
     }
 
-    async updatePendingProposalData() {
+    async fetchNftCollections() {
         
-        console.log(`updatePendingProposalData started`);
-        
-        await Promise.all([...this.proposalAddrWithMissingNftCollection].map(async (proposalAddr) => {
+        log(`fetchNftCollections started`);
+       
+        for (const proposalAddr of [...this.proposalAddrWithMissingNftCollection]) {
             let proposalData = this.proposalsData.get(proposalAddr);
-
+        
             if (!(proposalAddr in this.nftHolders)) {
-                console.log(`fetching nft items data for proposalAddr ${proposalAddr}`);
-                this.nftHolders[proposalAddr] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
+                try {
+                    log(`fetching nft items data for proposalAddr ${proposalAddr}`);
+                    this.nftHolders[proposalAddr] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
+                } catch (error) {
+                    log(`failed to fetch nft items for proposal ${proposalAddr}: ${error}`);
+                    proposalData!.fetchErrorReason = ProposalFetchingErrorReason.FETCH_NFT_ERROR;
+                    this.proposalsData.set(proposalAddr, proposalData!);
+                    continue;
+                }
             } else {
-                console.log(`nft items already exist in nftHolder for collection ${proposalAddr}, skiping fetching data proposalAddr ${proposalAddr}`);
+                log(`nft items already exist in nftHolder, skipping fetching data proposalAddr ${proposalAddr}`);
             }
-
-            console.log(`updatePendingProposalData: updating nft holders for proposal ${proposalAddr}: `, this.nftHolders[proposalAddr]);
+        
+            log(`fetchNftCollections: updating nft holders for proposal ${proposalAddr}`);
             this.proposalAddrWithMissingNftCollection.delete(proposalAddr);
-        }));          
+        }                        
     }
 
-    async updateProposalVotingData() {
+    async fetchProposalsVotingData() {
 
-        console.log(`updateProposalVotingData started`);
+        log(`fetchProposalsVotingData started`);
         
         await Promise.all([...this.proposalsByState.active, ...this.proposalsByState.ended].map(async (proposalAddr) => {
 
@@ -329,7 +411,12 @@ export class Fetcher {
             let proposalVotingData = proposalData!.votingData;
 
             if (!proposalData) {
-                console.log(`unexpected error: proposalAddr ${proposalAddr} was not found on proposalData`);
+                log(`unexpected error: proposalAddr ${proposalAddr} was not found on proposalData`);
+                return;
+            }
+
+            if (proposalData!.fetchErrorReason != undefined) {
+                log(`Not all data for proposal ${proposalAddr} was fetched properly, fetch error (${proposalData!.fetchErrorReason} was found), skipping voting data update`);
                 return;
             }
 
@@ -345,7 +432,7 @@ export class Fetcher {
             const newTx = await TonVoteSdk.getTransactions(this.client, proposalAddr, proposalVotingData.txData.maxLt);
 
             if (newTx.maxLt == proposalVotingData.txData.maxLt) {
-                console.log(`Nothing to fetch for proposal at ${proposalAddr}`);
+                log(`Nothing to fetch for proposal at ${proposalAddr}`);
                 this.fetchUpdate[proposalAddr] = Date.now();
                 return;
             }
@@ -365,15 +452,45 @@ export class Fetcher {
             proposalData.votingData = proposalVotingData;
             this.proposalsData.set(proposalAddr, proposalData!);
 
-            console.log('setting new proposalData: ', proposalData);
+            log(`setting new proposalData for proposal ${proposalAddr}`);
+
+            if (this.proposalsByState.ended.has(proposalAddr)) {
+                const filePath = TON_VOTE_DB_PATH + `/${proposalAddr}.json`;
+                const jsonString = JSON.stringify(proposalData, replacer);
+
+                fs.writeFileSync(filePath, jsonString);
+            
+              log(`successfully saved json data at ${filePath}`);
+            }
             
             this.fetchUpdate[proposalAddr] = Date.now();
 
         }));
     }
 
-    getProposalsByState() {
-        return this.proposalsByState;
+    updateDaosSortingScore() {
+      
+        this.daosData.daos.forEach((dao) => {
+            let sortingScore = 0;
+            let emaSortingScore = 0;
+            const alpha = 0.1;
+            // num voters * log(total weight) * 
+            for (const proposal of dao.daoProposals) {
+                const proposalData = this.proposalsData.get(proposal);
+                if (!proposalData) continue;
+                const votingData = proposalData!.votingData!;
+                if (!votingData) continue;
+                const totalWeight = Number(votingData.proposalResult.totalWeight);
+                let lastTxTime = proposalData.votingData?.txData.allTxns[0].now;
+                if (!lastTxTime) continue;
+                sortingScore = Math.log10(totalWeight) * Object.keys(votingData.votes).length * (Date.now() - lastTxTime);
+                emaSortingScore = emaSortingScore + alpha * (sortingScore - emaSortingScore);
+              }
+              
+            // res *= * ~ 1 / log (now - last_proposal_timestamp)
+            // create_dao_date
+        });
+
     }
 
     async run() {
@@ -382,42 +499,36 @@ export class Fetcher {
             
             const startTime = Date.now();
 
-            if (!this.finished) {
-                console.log('skipping run, still featching ...');            
-                return;
-            }
-
-            this.finished = false;
-
             this.getState();
 
             await this.fetchNewDaos();
-            
-            await this.updateDaosStateIfChangedOnChain();
+                        
+            await this.fetchDaosState();
 
-            await this.updateDaosProposals();
+            await this.fetchNewProposals();
 
-            await this.updateProposalMetadataIfChangedOnChain();
+            await this.fetchProposalsMetadata();
 
             this.updateProposalsState();
 
-            await this.updatePendingProposalData();
+            await this.fetchNftCollections();
 
-            await this.updateProposalVotingData();
+            await this.fetchProposalsVotingData();
             
             this.setState();
-            this.finished = true;
 
-            console.log(`Stats: ${this.daosData.daos.size} Daos, ${this.proposalsData.size} Proposals`);
-            console.log(`Finished in ${(Date.now()-startTime)/1000} seconds`); 
-            console.log(`------------------------------------------------------------`);                       
+            log(`Stats: ${this.daosData.daos.size} Daos, ${this.proposalsData.size} Proposals`);
+            log(`Finished in ${(Date.now()-startTime)/1000} seconds`); 
+            log(`------------------------------------------------------------`);    
+            
+            this.status = 'Synced';
 
-        } catch (error) {
+        } catch (err) {
 
-            this.finished = true;            
-            console.log('unexpected error: ', (error as Error).stack);
-            await sendNotification(`unexpected error: ${(error as Error).stack}`);
-            console.log(`------------------------------------------------------------`);                       
+            this.status = 'Error';
+            error(`unexpected error: ${(err as Error).stack}`);
+            await sendNotification(`unexpected error: ${(err as Error).stack}`);
+            log(`------------------------------------------------------------`);                       
         }
     }
 
@@ -427,6 +538,14 @@ export class Fetcher {
 
     getProposalAddrWithMissingNftCollection() {
         return this.getProposalAddrWithMissingNftCollection;
+    }
+
+    getStatus() {
+        return this.status;
+    }
+
+    getProposalsByState() {
+        return this.proposalsByState;
     }
 
 }

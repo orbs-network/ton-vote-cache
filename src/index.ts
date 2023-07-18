@@ -5,7 +5,12 @@ import { TaskLoop } from './task-loop';
 import * as Logger from './logger';
 import { State } from './state';
 import { Fetcher } from './fetcher';
-import * as fs from 'fs';
+import path from 'path';
+import fs from 'fs';
+
+const packageJsonPath = path.join(__dirname, '../package.json');
+const packageJsonData = fs.readFileSync(packageJsonPath, 'utf-8');
+const packageJson = JSON.parse(packageJsonData);
 
 const SOCKET_TIMEOUT_SEC = 60;
 const PORT = Number(process.env.PORT) || 3000;
@@ -23,6 +28,11 @@ export function serve() {
   const state = new State();
   const fetcher = new Fetcher(state);
 
+  app.use((_req, res, next) => {
+    res.set('Fetcher-Status', fetcher.getStatus());
+    next();
+  });
+  
   app.get('/daos', (_request, response) => {
     response.status(200).json(state.getDaos());
   });
@@ -69,7 +79,18 @@ export function serve() {
   });
 
   app.get('/proposalsByState', (_request, response) => {
-    response.status(200).json(fetcher.getProposalsByState());
+    const proposalsByState = fetcher.getProposalsByState();
+    const proposalsByStateForJson = {
+      pending: Array.from(proposalsByState.pending),
+      active: Array.from(proposalsByState.active),
+      ended: Array.from(proposalsByState.ended)
+    };
+
+    response.status(200).json(proposalsByStateForJson);
+  });
+
+  app.get('/version', (_request, response) => {
+    response.status(200).json(packageJson.version);
   });
 
   app.get('/version', (_request, response) => {
@@ -88,7 +109,7 @@ export function serve() {
     return next(error);
   });
 
-  fetcher.init();
+  fetcher.init().then(() => {Logger.log('fetcher init completed')});
   const fetcherSyncTask = new TaskLoop(() => fetcher.run(), 60 * 1000);  
   fetcherSyncTask.start();
 

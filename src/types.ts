@@ -12,6 +12,13 @@ export type ProposalVotingData = {
     proposalResult: ProposalResult;
 }
 
+export enum ProposalState {
+    undefined = 0,
+    pending = 1,
+    active = 2,
+    ended = 3
+}
+
 export type ProposalsByState = {
     pending: Set<string>;    
     active: Set<string>;
@@ -20,11 +27,18 @@ export type ProposalsByState = {
 
 export type ProposalAddrWithMissingNftCollection = Set<string>
 
+export type FetcherStatus = 'Init' | 'Synced' | 'Error';
+
+export enum ProposalFetchingErrorReason {
+    FETCH_NFT_ERROR = 0
+}
+
 export type ProposalsData = Map<string, {
         daoAddress: string,
         proposalAddress: string, 
         metadata: ProposalMetadata,
-        votingData?: ProposalVotingData
+        votingData?: ProposalVotingData,
+        fetchErrorReason?: ProposalFetchingErrorReason
 }>
 
 export interface NftHolders {

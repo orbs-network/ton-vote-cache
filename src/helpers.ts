@@ -1,5 +1,8 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { ProposalMetadata } from "ton-vote-contracts-sdk";
+import { log } from './logger';
+import { ProposalState } from './types';
 
 dotenv.config();
 
@@ -85,7 +88,6 @@ export function normalizeAddress(address: string): string {
 
 export async function sendNotification(message: string) {
   if (!process.env.TELEGRAM_NOTIF_GROUP_TOKEN || !process.env.TELEGRAM_NOTIF_GROUP_CHAT_ID) {
-    console.log('Telegram channel is not configured sending messageto console log: ', message);  
     return;  
   }
 
@@ -102,4 +104,73 @@ export async function sendNotification(message: string) {
   } catch (error) {
       console.error('Error sending notification:', error);
   }
+}
+
+export async function getOrderedDaosByPriority(): Promise<string[]> {
+  
+  const file_url = 'https://raw.githubusercontent.com/orbs-network/ton-vote-cache/main/src/ordered-daos.text';
+
+  try {
+    const response = await axios.get(file_url, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
+    return response.data
+      .split('\n')
+      .map((line: string) => line.trim())
+      .filter((line: string) => line !== ''); 
+
+  } catch (error) {
+    console.error('Error reading file:', error);
+    return [];
+  }
+  
+}
+
+export async function isVerifiedDao(daoAddr: string, websiteUrl: string) {
+    const response = await axios.get(websiteUrl + "ton-vote.txt");
+    return response.data == daoAddr;
+}
+
+export function replacer(_key: string, value: any) {
+  if (typeof value === 'bigint') {
+    return { type: 'BigInt', value: value.toString() };
+  } else {
+    return value;
+  }
+}
+
+export function reviver(_key: string, value: any) {
+  if (value && value.type === 'BigInt') {
+    return BigInt(value.value);
+  } else {
+    return value;
+  }
+}
+
+export function getProposalState(proposalAddress: string, metadata: ProposalMetadata) {
+
+  const now = Date.now() / 1000;
+
+  if (!metadata) {
+      log(`unexpected error: could not find metadata for proposal ${proposalAddress}`);
+      return ProposalState.undefined;
+  }
+
+  if (now < metadata.proposalStartTime) {                
+    return ProposalState.pending;
+  }
+
+  if (metadata.proposalStartTime <= now && now < metadata.proposalEndTime) {                
+    return ProposalState.active;
+  }
+
+  if (metadata.proposalEndTime <= now) {
+    return ProposalState.ended;
+  }  
+
+  return ProposalState.undefined;
 }
