@@ -15,10 +15,6 @@ const packageJson = JSON.parse(packageJsonData);
 const SOCKET_TIMEOUT_SEC = 60;
 const PORT = Number(process.env.PORT) || 3000;
 
-const packageJson = fs.readFileSync('package.json', 'utf8');
-const packageData = JSON.parse(packageJson);
-const version: string = packageData.version;
-
 
 export function serve() {
   const app = express();
@@ -91,10 +87,6 @@ export function serve() {
 
   app.get('/version', (_request, response) => {
     response.status(200).json(packageJson.version);
-  });
-
-  app.get('/version', (_request, response) => {
-    response.status(200).json(version);
   });
 
   app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
