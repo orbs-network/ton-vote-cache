@@ -386,6 +386,7 @@ export class Fetcher {
                     log(`failed to fetch nft items for proposal ${proposalAddr}: ${error}`);
                     proposalData!.fetchErrorReason = ProposalFetchingErrorReason.FETCH_NFT_ERROR;
                     this.proposalsData.set(proposalAddr, proposalData!);
+                    this.proposalAddrWithMissingNftCollection.delete(proposalAddr);
                     continue;
                 }
             } else {
