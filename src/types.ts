@@ -12,6 +12,33 @@ export type ProposalVotingData = {
     proposalResult: ProposalResult;
 }
 
+export type RoundResult = 'passed' | 'failed' | 'ongoing';
+
+export type ValidatorsVotingRoundDetails = {
+    phash: string,
+    vsetId: string,
+    votersList: string[],
+    weightRemaining: string,
+    cycleStartTime: number,
+    cycleEndTime: number,
+    totalValidators: number,
+    mainValidators: number,
+    totalWeight: string,
+    result: RoundResult
+}
+
+export type ValidatorsVotingData = {
+    phash: string,
+    critical: string,
+    paramId: string,
+    paramVal: string,
+    roundDetails: ValidatorsVotingRoundDetails[],
+    roundsRemaining: number,
+    numTotalRounds: number,
+    wins: number,
+    losses: number
+}
+
 export enum ProposalState {
     undefined = 0,
     pending = 1,
@@ -38,6 +65,7 @@ export type ProposalsData = Map<string, {
         proposalAddress: string, 
         metadata: ProposalMetadata,
         votingData?: ProposalVotingData,
+        validatorsVotingData?: ValidatorsVotingData,
         fetchErrorReason?: ProposalFetchingErrorReason
 }>
 

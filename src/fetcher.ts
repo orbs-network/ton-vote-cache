@@ -528,7 +528,9 @@ export class Fetcher {
             this.status = 'Error';
             error(`unexpected error: ${(err as Error).stack}`);
             await sendNotification(`unexpected error: ${(err as Error).stack}`);
-            log(`------------------------------------------------------------`);                       
+            log(`------------------------------------------------------------`);            
+            this.client = await TonVoteSdk.getClientV2();
+            this.client4 = await TonVoteSdk.getClientV4();    
         }
     }
 
