@@ -1,13 +1,14 @@
 import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
-import { MetadataArgs, DaoRoles, ReleaseMode } from "ton-vote-contracts-sdk";
+import { MetadataArgs, DaoRoles, ReleaseMode, ProposalMetadata } from "ton-vote-contracts-sdk";
 import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus, ProposalState } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
 import { getOrderedDaosByPriority, getProposalState, replacer, reviver, sendNotification } from "./helpers";
 import fs from 'fs';
 import {log, error} from './logger';
+import { getValidatorsMock } from "./mocks/validators";
 
 
 dotenv.config();
@@ -398,6 +399,11 @@ export class Fetcher {
         }                        
     }
 
+    async fetchValidatorsProposalData(proposalMetadata: ProposalMetadata) {
+        if (!(proposalMetadata.votingPowerStrategies[0].arguments[0].name == 'proposal-hash')) return {}
+        return getValidatorsMock(proposalMetadata.votingPowerStrategies[0].arguments[0].value)
+    }
+
     async fetchProposalsVotingData() {
 
         log(`fetchProposalsVotingData started`);
@@ -407,9 +413,13 @@ export class Fetcher {
             if (this.proposalsByState.ended.has(proposalAddr) && (proposalAddr in this.fetchUpdate)) {
                 return;
             }
-
+            
             let proposalData = this.proposalsData.get(proposalAddr);
             let proposalVotingData = proposalData!.votingData;
+
+            if (proposalData?.validatorsVotingData) {
+                return await this.fetchValidatorsProposalData(proposalData.metadata);
+            }
 
             if (!proposalData) {
                 log(`unexpected error: proposalAddr ${proposalAddr} was not found on proposalData`);
@@ -465,8 +475,33 @@ export class Fetcher {
             }
             
             this.fetchUpdate[proposalAddr] = Date.now();
+            return;
 
         }));
+    }
+
+    writeEndedProposalToDb() {
+        log(`writeEndedProposalToDb started`);
+        
+        [...this.proposalsByState.ended].map(proposalAddr => {
+
+            if (proposalAddr in this.fetchUpdate) return;
+
+            let proposalData = this.proposalsData.get(proposalAddr);
+
+            if (this.proposalsByState.ended.has(proposalAddr)) {
+                const filePath = TON_VOTE_DB_PATH + `/${proposalAddr}.json`;
+                const jsonString = JSON.stringify(proposalData, replacer);
+
+                fs.writeFileSync(filePath, jsonString);
+            
+              log(`successfully saved json data at ${filePath}`);
+            }
+            
+            this.fetchUpdate[proposalAddr] = Date.now();
+
+        });
+
     }
 
     updateDaosSortingScore() {
@@ -515,6 +550,8 @@ export class Fetcher {
             await this.fetchNftCollections();
 
             await this.fetchProposalsVotingData();
+            
+            this.writeEndedProposalToDb();
             
             this.setState();
 
