@@ -15,7 +15,6 @@ export type ProposalVotingData = {
 export type RoundResult = 'passed' | 'failed' | 'ongoing';
 
 export type ValidatorsVotingRoundDetails = {
-    phash: string,
     vsetId: string,
     votersList: string[],
     weightRemaining: string,
@@ -29,14 +28,16 @@ export type ValidatorsVotingRoundDetails = {
 
 export type ValidatorsVotingData = {
     phash: string,
-    critical: string,
-    paramId: string,
+    critical: number,
+    paramId: number,
     paramVal: string,
-    roundDetails: ValidatorsVotingRoundDetails[],
+    roundsDetails: ValidatorsVotingRoundDetails[],
     roundsRemaining: number,
-    numTotalRounds: number,
+    totalRounds: number,
     wins: number,
-    losses: number
+    minWins: number,
+    losses: number,
+    maxLosses: number
 }
 
 export enum ProposalState {
