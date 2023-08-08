@@ -17,12 +17,12 @@ export type RoundResult = 'passed' | 'failed' | 'ongoing';
 export type ValidatorsVotingRoundDetails = {
     vsetId: string,
     votersList: string[],
+    totalWeight: string,
     weightRemaining: string,
     cycleStartTime: number,
     cycleEndTime: number,
     totalValidators: number,
     mainValidators: number,
-    totalWeight: string,
     result: RoundResult
 }
 

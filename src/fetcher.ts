@@ -1,7 +1,7 @@
 import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
-import { MetadataArgs, DaoRoles, ReleaseMode, ProposalMetadata } from "ton-vote-contracts-sdk";
+import { MetadataArgs, DaoRoles, ReleaseMode, ProposalMetadata, VotingPowerStrategyType } from "ton-vote-contracts-sdk";
 import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus, ProposalState } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
@@ -399,8 +399,8 @@ export class Fetcher {
         }                        
     }
 
-    async fetchValidatorsProposalData(proposalMetadata: ProposalMetadata) {
-        // if (!(proposalMetadata.votingPowerStrategies[0].arguments[0].name == 'proposal-hash')) return {};
+    fetchValidatorsProposalData(proposalMetadata: ProposalMetadata) {
+        if (!(proposalMetadata.votingPowerStrategies[0].arguments[0].name == 'validators-proposal-hash')) return {};
         return getValidatorsMock(proposalMetadata.votingPowerStrategies[0].arguments[0].value);
     }
 
@@ -415,16 +415,25 @@ export class Fetcher {
             }
             
             let proposalData = this.proposalsData.get(proposalAddr);
-            let proposalVotingData = proposalData!.votingData;
-
-            if (proposalData?.validatorsVotingData) {
-                return await this.fetchValidatorsProposalData(proposalData.metadata);
-            }
 
             if (!proposalData) {
                 log(`unexpected error: proposalAddr ${proposalAddr} was not found on proposalData`);
                 return;
             }
+            
+            if (proposalData.metadata.votingPowerStrategies.length && proposalData.metadata.votingPowerStrategies[0].type == VotingPowerStrategyType.ValidatorsVote) {
+                const validatorsVotingData = this.fetchValidatorsProposalData(proposalData.metadata);
+                
+                if (!(Object.keys(validatorsVotingData).length) ) return;
+
+                //@ts-ignore
+                proposalData.validatorsVotingData = validatorsVotingData;
+                this.proposalsData.set(proposalAddr, proposalData!);
+                return;
+            }
+
+            let proposalVotingData = proposalData!.votingData;
+
 
             if (proposalData!.fetchErrorReason != undefined) {
                 log(`Not all data for proposal ${proposalAddr} was fetched properly, fetch error (${proposalData!.fetchErrorReason} was found), skipping voting data update`);

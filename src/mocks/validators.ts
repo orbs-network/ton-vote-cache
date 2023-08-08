@@ -1,7 +1,10 @@
 
+import {RoundResult} from "../types";
+
+
 const validatorsMock = {
     "phash": "27848878697373229758863607066613445539857911080624014948686208648269380730918",
-    "critical": "0",
+    "critical": 0,
     "paramId": 5,
     "paramVal": "0",
     "roundsRemaining": 4,
@@ -20,7 +23,7 @@ const validatorsMock = {
             "cycleEndTime": 1687047944,
             "totalValidators": 320,
             "mainValidators": 100,
-            "result": "failed"
+            "result": "failed" as RoundResult
         }, 
         {
             "vsetId": "11193408191068227377353827824230636431057727618416128735691923439556386359472",
@@ -31,7 +34,7 @@ const validatorsMock = {
             "cycleEndTime": 1687047944,
             "totalValidators": 320,
             "mainValidators": 100,
-            "result": "passed"
+            "result": "passed"  as RoundResult
 
         }, 
         {
@@ -43,7 +46,7 @@ const validatorsMock = {
             "cycleEndTime": 1687047944,
             "totalValidators": 320,
             "mainValidators": 100,
-            "result": "ongoing"
+            "result": "ongoing"  as RoundResult
         }
     ]
 
