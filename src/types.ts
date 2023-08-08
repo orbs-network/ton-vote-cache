@@ -66,6 +66,7 @@ export type ProposalsData = Map<string, {
         proposalAddress: string, 
         metadata: ProposalMetadata,
         votingData?: ProposalVotingData,
+        validatorsVotingData?: ValidatorsVotingData,
         fetchErrorReason?: ProposalFetchingErrorReason
 }>
 
