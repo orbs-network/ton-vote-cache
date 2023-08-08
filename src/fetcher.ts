@@ -400,7 +400,7 @@ export class Fetcher {
     }
 
     async fetchValidatorsProposalData(proposalMetadata: ProposalMetadata) {
-        if (!(proposalMetadata.votingPowerStrategies[0].arguments[0].name == 'proposal-hash')) return {};
+        // if (!(proposalMetadata.votingPowerStrategies[0].arguments[0].name == 'proposal-hash')) return {};
         return getValidatorsMock(proposalMetadata.votingPowerStrategies[0].arguments[0].value);
     }
 
