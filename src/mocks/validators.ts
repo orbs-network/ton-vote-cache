@@ -1,5 +1,5 @@
 
-import {RoundResult} from "../types";
+import {RoundResult, ValidatorsProposalResult} from "../types";
 
 
 const validatorsMock = {
@@ -13,6 +13,7 @@ const validatorsMock = {
     "minWins": 2,
     "losses": 1,
     "maxLosses": 3,
+    "status": "ongoing" as ValidatorsProposalResult,
     "roundsDetails": [
         {
             "vsetId": "11193408191068227377353827824230636431057727618416128735691923439556386359472",

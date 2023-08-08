@@ -13,6 +13,7 @@ export type ProposalVotingData = {
 }
 
 export type RoundResult = 'passed' | 'failed' | 'ongoing';
+export type ValidatorsProposalResult = RoundResult;
 
 export type ValidatorsVotingRoundDetails = {
     vsetId: string,
@@ -37,7 +38,8 @@ export type ValidatorsVotingData = {
     wins: number,
     minWins: number,
     losses: number,
-    maxLosses: number
+    maxLosses: number,
+    status: ValidatorsProposalResult
 }
 
 export enum ProposalState {
