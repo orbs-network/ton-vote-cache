@@ -24,7 +24,7 @@ export type ValidatorsVotingRoundDetails = {
     cycleEndTime: number,
     totalValidators: number,
     mainValidators: number,
-    result: RoundResult
+    status: RoundResult
 }
 
 export type ValidatorsVotingData = {

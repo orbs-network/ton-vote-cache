@@ -24,7 +24,7 @@ const validatorsMock = {
             "cycleEndTime": 1687047944,
             "totalValidators": 320,
             "mainValidators": 100,
-            "result": "failed" as RoundResult
+            "status": "failed" as RoundResult
         }, 
         {
             "vsetId": "11193408191068227377353827824230636431057727618416128735691923439556386359472",
@@ -35,7 +35,7 @@ const validatorsMock = {
             "cycleEndTime": 1687047944,
             "totalValidators": 320,
             "mainValidators": 100,
-            "result": "passed"  as RoundResult
+            "status": "passed"  as RoundResult
 
         }, 
         {
@@ -47,7 +47,7 @@ const validatorsMock = {
             "cycleEndTime": 1687047944,
             "totalValidators": 320,
             "mainValidators": 100,
-            "result": "ongoing"  as RoundResult
+            "status": "ongoing"  as RoundResult
         }
     ]
 
