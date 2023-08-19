@@ -51,8 +51,8 @@ export class Fetcher {
 
     async init() {
         await sendNotification('Ton Vote Cache Server started');
-        // this.client = await TonVoteSdk.getClientV2();
-        this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
+        this.client = await TonVoteSdk.getClientV2();
+        // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
         this.client4 = await TonVoteSdk.getClientV4();
 
         log(`starting with masterchainInfo: ${JSON.stringify(await this.client.getMasterchainInfo())}`)
