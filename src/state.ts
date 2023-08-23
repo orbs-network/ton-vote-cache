@@ -1,4 +1,4 @@
-import { DaosData, NftHolders, ProposalsData, ProposalVotingData } from "./types";
+import { DaosData, NftHolders, ProposalsData, ProposalVotingData, OperatingValidatorsInfo } from "./types";
 import { ProposalMetadata } from "ton-vote-contracts-sdk";
 // import * as Logger from './logger';
 import _ from 'lodash';
@@ -11,6 +11,7 @@ export class State {
     private proposalsData: ProposalsData = new Map();
     private nftHolders: NftHolders = {};
     private registry!: string;
+    private operatingValidatorsInfo: OperatingValidatorsInfo = {};
 
     getDaosData() {
         return this.daosData
@@ -26,6 +27,14 @@ export class State {
 
     getProposalNftHolders(proposalAddress: string) {
         return this.nftHolders[proposalAddress] || {};
+    }
+
+    getOperatingValidatorsInfo() {
+        return this.operatingValidatorsInfo;
+    }
+
+    getProposalOperatingValidatorsInfo(proposalAddr: string) {
+        return this.operatingValidatorsInfo[proposalAddr];
     }
 
     getDaos() {
@@ -95,6 +104,10 @@ export class State {
 
     setNftHolders(nftHolders: NftHolders) {
         this.nftHolders = _.cloneDeep(nftHolders);
+    }
+
+    setOperatingValidatorsInfo(operatingValidatorsInfo: OperatingValidatorsInfo) {
+        this.operatingValidatorsInfo = _.cloneDeep(operatingValidatorsInfo);
     }
 
     setProposalsData(proposalsData: ProposalsData) {

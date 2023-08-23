@@ -1,7 +1,7 @@
 {
   "name": "ton-vote-server",
   "private": false,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "homepage": "https://ton.vote/",
   "scripts": {
     "typecheck": "tsc --noEmit --skipLibCheck",
@@ -32,10 +32,13 @@
     "lodash": "^4.17.21",
     "rimraf": "^3.0.2",
     "ton": "^13.4.1",
-    "ton-vote-contracts-sdk": "^1.5.3",
+    "ton-vote-contracts-sdk": "^1.5.7",
     "typescript": "^4.9.5"
   },
   "engines": {
     "node": "16.x"
+  },
+  "devDependencies": {
+    "@types/node-fetch": "^2.6.4"
   }
 }

@@ -47,9 +47,14 @@ export function serve() {
     response.status(200).json(state.getProposal(proposalAddress));
   });
 
-  app.get('/proposalNftHolders/:proposalAddress', (_request, response) => {
+  app.get('/nftHolders/:proposalAddress', (_request, response) => {
     const { proposalAddress } = _request.params;
     response.status(200).json(state.getProposalNftHolders(proposalAddress));
+  });
+
+  app.get('/operatingValidatorsInfo/:proposalAddress', (_request, response) => {
+    const { proposalAddress } = _request.params;
+    response.status(200).json(state.getProposalOperatingValidatorsInfo(proposalAddress));
   });
 
   app.get('/maxLt/:proposalAddress', (_request, response) => {
@@ -57,8 +62,8 @@ export function serve() {
     response.status(200).json(state.getMaxLt(proposalAddress));
   });
 
-  app.get('/proposalAddrWithMissingNftCollection', (_request, response) => {
-    response.status(200).json(fetcher.getProposalAddrWithMissingNftCollection());
+  app.get('/proposalsWithMissingData', (_request, response) => {
+    response.status(200).json(fetcher.getProposalsWithMissingData());
   });
 
   app.get('/registry', (_request, response) => {

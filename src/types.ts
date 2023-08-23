@@ -1,4 +1,4 @@
-import { MetadataArgs, ProposalMetadata, DaoRoles, Votes, ProposalResult, TxData } from "ton-vote-contracts-sdk";
+import { MetadataArgs, ProposalMetadata, DaoRoles, Votes, ProposalResult, TxData, VotingPowerStrategyType } from "ton-vote-contracts-sdk";
 
 
 export interface VotingPower {
@@ -55,7 +55,7 @@ export type ProposalsByState = {
     ended: Set<string>;
 }
 
-export type ProposalAddrWithMissingNftCollection = Set<string>
+export type ProposalsWithMissingData = {[key: string]: Set<VotingPowerStrategyType>}
 
 export type FetcherStatus = 'Init' | 'Synced' | 'Error';
 
@@ -74,6 +74,10 @@ export type ProposalsData = Map<string, {
 
 export interface NftHolders {
     [proposalAddress: string] : {[nftHolderAddr: string]: string[]}
+}
+
+export interface OperatingValidatorsInfo {
+    [proposalAddress: string] : any
 }
 
 export interface DaosData {

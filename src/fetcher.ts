@@ -2,13 +2,15 @@ import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
 import { MetadataArgs, DaoRoles, ReleaseMode, ProposalMetadata, VotingPowerStrategyType } from "ton-vote-contracts-sdk";
-import { DaosData, NftHolders, ProposalAddrWithMissingNftCollection, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus, ProposalState } from "./types";
+import { DaosData, NftHolders, ProposalsWithMissingData, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus, ProposalState, OperatingValidatorsInfo } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
 import { getOrderedDaosByPriority, getProposalState, replacer, reviver, sendNotification } from "./helpers";
 import fs from 'fs';
 import {log, error} from './logger';
 import { getValidatorsMock } from "./mocks/validators";
+import fetch from 'node-fetch';
+// import { getHttpV4Endpoint } from "@orbs-network/ton-access";
 
 
 dotenv.config();
@@ -23,6 +25,7 @@ const PROPOSAL_METADATA_BATCH_SIZE = 35;
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
 
 const TON_VOTE_DB_PATH = process.env.TON_VOTE_DB_PATH || '/tmp/ton-vote-db'
+const OPERATING_VALIDATORS_ENDPOINT = 'https://single-nominator-backend.herokuapp.com/operatingValidatorsBalance';
 
 if (!fs.existsSync(TON_VOTE_DB_PATH)) {
     fs.mkdirSync(TON_VOTE_DB_PATH);
@@ -40,8 +43,9 @@ export class Fetcher {
     private daosData!: DaosData;
     private proposalsData!: ProposalsData;
     private nftHolders!: NftHolders;
+    private operatingValidatorsInfo!: OperatingValidatorsInfo;
 
-    private proposalAddrWithMissingNftCollection: ProposalAddrWithMissingNftCollection = new Set();
+    private proposalsWithMissingData: ProposalsWithMissingData = {};
 
     private status: FetcherStatus = 'Init';
 
@@ -53,7 +57,9 @@ export class Fetcher {
         await sendNotification('Ton Vote Cache Server started');
         this.client = await TonVoteSdk.getClientV2();
         // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
-        this.client4 = await TonVoteSdk.getClientV4();
+        const endpointV4 = undefined//await getHttpV4Endpoint();
+
+        this.client4 = await TonVoteSdk.getClientV4(endpointV4);
 
         log(`starting with masterchainInfo: ${JSON.stringify(await this.client.getMasterchainInfo())}`)
         await this.updateRegistry();
@@ -105,13 +111,15 @@ export class Fetcher {
     getState() {
         this.daosData = _.cloneDeep(this.state.getDaosData());
         this.proposalsData = _.cloneDeep(this.state.getProposalsData());
-        this.nftHolders = _.cloneDeep(this.state.getNftHolders());        
+        this.nftHolders = _.cloneDeep(this.state.getNftHolders());
+        this.operatingValidatorsInfo = _.cloneDeep(this.state.getOperatingValidatorsInfo());
     }
 
-    async setState() {            
+    async setState() {
         this.state.setDaosData(this.daosData);
         this.state.setProposalsData(this.proposalsData);
         this.state.setNftHolders(this.nftHolders); 
+        this.state.setOperatingValidatorsInfo(this.operatingValidatorsInfo); 
         this.state.setUpdateTime()
     }
 
@@ -271,13 +279,14 @@ export class Fetcher {
                                     proposalAddress: proposalAddress,
                                     metadata: proposalMetadata
                                 });
+
                                 this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
-                                if ((proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection) || 
-                                (proposalMetadata.votingPowerStrategies[0].type == TonVoteSdk.VotingPowerStrategyType.NftCcollection_1Wallet1Vote)) {
-                                    log(`adding proposal address ${proposalAddress} to missing nft collections`);
-                                    this.proposalAddrWithMissingNftCollection.add(proposalAddress)
-                                }
+
+                                if (!(proposalAddress in this.proposalsWithMissingData)) this.proposalsWithMissingData[proposalAddress] = new Set();
+                                this.proposalsWithMissingData[proposalAddress].add(proposalMetadata.votingPowerStrategies[0].type);
+
                             })();
+
                             allPromises.push(promise);
                         });
 
@@ -372,31 +381,53 @@ export class Fetcher {
         console.log(this.proposalsByState);
     }
 
-    async fetchNftCollections() {
+    async fetchMissingData() {
         
-        log(`fetchNftCollections started`);
+        log(`fetchMissingData started: `);
+        console.log(`fetchMissingData started: `, this.proposalsWithMissingData);
+        
        
-        for (const proposalAddr of [...this.proposalAddrWithMissingNftCollection]) {
+        for (const proposalAddr in this.proposalsWithMissingData) {
+            console.log(`fetching missing data for proposal ${proposalAddr}`);
+
+            const votingPowerStrategyType = Number(this.proposalsWithMissingData[proposalAddr].values().next().value) as VotingPowerStrategyType;
             let proposalData = this.proposalsData.get(proposalAddr);
         
-            if (!(proposalAddr in this.nftHolders)) {
-                try {
-                    log(`fetching nft items data for proposalAddr ${proposalAddr}`);
-                    this.nftHolders[proposalAddr] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
-                } catch (error) {
-                    log(`failed to fetch nft items for proposal ${proposalAddr}: ${error}`);
-                    proposalData!.fetchErrorReason = ProposalFetchingErrorReason.FETCH_NFT_ERROR;
-                    this.proposalsData.set(proposalAddr, proposalData!);
-                    this.proposalAddrWithMissingNftCollection.delete(proposalAddr);
-                    continue;
-                }
-            } else {
-                log(`nft items already exist in nftHolder, skipping fetching data proposalAddr ${proposalAddr}`);
+            switch (votingPowerStrategyType) {
+
+                case VotingPowerStrategyType.NftCcollection:
+                case VotingPowerStrategyType.NftCcollection_1Wallet1Vote:
+
+                    if (!(proposalAddr in this.nftHolders)) {
+                        try {
+                            log(`fetching nft items data for proposalAddr ${proposalAddr}`);
+                            this.nftHolders[proposalAddr] = await TonVoteSdk.getAllNftHolders(this.client4, proposalData!.metadata);
+                        } catch (error) {
+                            log(`failed to fetch nft items for proposal ${proposalAddr}: ${error}`);
+                            proposalData!.fetchErrorReason = ProposalFetchingErrorReason.FETCH_NFT_ERROR;
+                            this.proposalsData.set(proposalAddr, proposalData!);
+                            continue;
+                        }
+                    } else {
+                        log(`nft items already exist in nftHolder, skipping fetching data proposalAddr ${proposalAddr}`);
+                    }
+                
+                    break;
+
+                case VotingPowerStrategyType.TonBalanceWithValidators:
+                    let response = await fetch(OPERATING_VALIDATORS_ENDPOINT, {timeout: 60000})                    
+                    this.operatingValidatorsInfo[proposalAddr] = await response.json();
+                    break;
+
+                default:
+                    console.log(`skipping unknown missing daata type: ${votingPowerStrategyType}`);
+                    
             }
-        
-            log(`fetchNftCollections: updating nft holders for proposal ${proposalAddr}`);
-            this.proposalAddrWithMissingNftCollection.delete(proposalAddr);
-        }                        
+            
+            this.proposalsWithMissingData[proposalAddr].delete(votingPowerStrategyType);
+            
+            if (this.proposalsWithMissingData[proposalAddr].size == 0) delete this.proposalsWithMissingData[proposalAddr];
+        }
     }
 
     fetchValidatorsProposalData(proposalMetadata: ProposalMetadata) {
@@ -461,7 +492,15 @@ export class Fetcher {
             // TODO: getAllVotes - use only new tx not all of them
             let newVotes = TonVoteSdk.getAllVotes(newTx.allTxns, proposalData.metadata);
                         
-            let newVotingPower = await TonVoteSdk.getVotingPower(this.client4, proposalData.metadata, newTx.allTxns, proposalVotingData.votingPower, proposalData.metadata.votingPowerStrategies[0].type, this.nftHolders[proposalAddr]);
+            let newVotingPower = await TonVoteSdk.getVotingPower(
+                this.client4, 
+                proposalData.metadata, 
+                newTx.allTxns, 
+                proposalVotingData.votingPower, 
+                proposalData.metadata.votingPowerStrategies[0].type, 
+                this.nftHolders[proposalAddr], 
+                this.operatingValidatorsInfo[proposalAddr]);
+                            
             let newProposalResults = TonVoteSdk.getCurrentResults(newTx.allTxns, newVotingPower, proposalData.metadata);
 
             proposalVotingData.proposalResult = newProposalResults;
@@ -556,7 +595,7 @@ export class Fetcher {
 
             this.updateProposalsState();
 
-            await this.fetchNftCollections();
+            await this.fetchMissingData();
 
             await this.fetchProposalsVotingData();
             
@@ -585,8 +624,8 @@ export class Fetcher {
         return this.fetchUpdate[proposalAddress];
     }
 
-    getProposalAddrWithMissingNftCollection() {
-        return this.getProposalAddrWithMissingNftCollection;
+    getProposalsWithMissingData() {
+        return this.proposalsWithMissingData;
     }
 
     getStatus() {
