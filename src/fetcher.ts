@@ -390,7 +390,7 @@ export class Fetcher {
         for (const proposalAddr in this.proposalsWithMissingData) {
             console.log(`fetching missing data for proposal ${proposalAddr}`);
 
-            const votingPowerStrategyType = Number(this.proposalsWithMissingData[proposalAddr].values().next().value) as VotingPowerStrategyType;
+            const votingPowerStrategyType = this.proposalsWithMissingData[proposalAddr].values().next().value;
             let proposalData = this.proposalsData.get(proposalAddr);
         
             switch (votingPowerStrategyType) {
