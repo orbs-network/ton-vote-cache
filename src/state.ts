@@ -59,7 +59,7 @@ export class State {
             metadata: proposal.metadata,
             votingPower: proposal.votingData ? proposal.votingData.votingPower : {},
             votes: proposal.votingData ? proposal.votingData.votes : {},
-            proposalResult: proposal.votingData ? proposal.votingData.proposalResult : {},
+            proposalResults: proposal.votingData ? proposal.votingData.proposalResult : {},
             validatorsVotingData: proposal.validatorsVotingData? proposal.validatorsVotingData : {}
         };
         
