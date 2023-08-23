@@ -390,7 +390,8 @@ export class Fetcher {
         for (const proposalAddr in this.proposalsWithMissingData) {
             console.log(`fetching missing data for proposal ${proposalAddr}`);
 
-            const votingPowerStrategyType = this.proposalsWithMissingData[proposalAddr].values().next().value;
+            const nextValue = this.proposalsWithMissingData[proposalAddr].values().next().value;
+            const votingPowerStrategyType = Number(nextValue) as VotingPowerStrategyType;
             let proposalData = this.proposalsData.get(proposalAddr);
         
             switch (votingPowerStrategyType) {
@@ -420,11 +421,11 @@ export class Fetcher {
                     break;
 
                 default:
-                    console.log(`skipping unknown missing daata type: ${votingPowerStrategyType}`);
+                    console.log(`skipping unknown missing data type: ${votingPowerStrategyType}`);
                     
             }
             
-            this.proposalsWithMissingData[proposalAddr].delete(votingPowerStrategyType);
+            this.proposalsWithMissingData[proposalAddr].delete(nextValue);
             
             if (this.proposalsWithMissingData[proposalAddr].size == 0) delete this.proposalsWithMissingData[proposalAddr];
         }
