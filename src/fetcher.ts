@@ -440,11 +440,20 @@ export class Fetcher {
     //     return res;
     // }
 
+    async processInBatches<T>(array: T[], batchSize: number, callback: (item: T) => Promise<void>): Promise<void> {
+        const batchCount = Math.ceil(array.length / batchSize);
+        for(let i=0; i<batchCount; i++) {
+          await Promise.all(
+            array.slice(i*batchSize, (i+1)*batchSize).map(callback)
+          );
+        }
+    }
+      
     async fetchProposalsVotingData() {
 
         log(`fetchProposalsVotingData started`);
         
-        await Promise.all([...this.proposalsByState.active, ...this.proposalsByState.ended].map(async (proposalAddr) => {
+        await this.processInBatches([...this.proposalsByState.active, ...this.proposalsByState.ended], 5, async (proposalAddr: string) => {
 
             if (this.proposalsByState.ended.has(proposalAddr) && (proposalAddr in this.fetchUpdate)) {
                 return;
@@ -529,7 +538,7 @@ export class Fetcher {
             this.fetchUpdate[proposalAddr] = Date.now();
             return;
 
-        }));
+        });
     }
 
     writeEndedProposalToDb() {
