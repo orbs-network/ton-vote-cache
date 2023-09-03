@@ -1,15 +1,15 @@
 import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
-import { MetadataArgs, DaoRoles, ReleaseMode, ProposalMetadata, VotingPowerStrategyType } from "ton-vote-contracts-sdk";
+import { MetadataArgs, DaoRoles, ReleaseMode, VotingPowerStrategyType } from "ton-vote-contracts-sdk";
 import { DaosData, NftHolders, ProposalsWithMissingData, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus, ProposalState, OperatingValidatorsInfo } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
 import { getOrderedDaosByPriority, getProposalState, replacer, reviver, sendNotification } from "./helpers";
 import fs from 'fs';
 import {log, error} from './logger';
-import { getValidatorsMock } from "./mocks/validators";
 import fetch from 'node-fetch';
+import { getConfigProposalResults } from "./validators/validators-config";
 // import { getHttpV4Endpoint } from "@orbs-network/ton-access";
 
 
@@ -425,16 +425,20 @@ export class Fetcher {
                     
             }
             
-            this.proposalsWithMissingData[proposalAddr].delete(nextValue);
+            console.log(`deleting ${proposalAddr} from proposalsWithMissingData ...`);
             
+            this.proposalsWithMissingData[proposalAddr].delete(nextValue);            
             if (this.proposalsWithMissingData[proposalAddr].size == 0) delete this.proposalsWithMissingData[proposalAddr];
+
+            console.log(this.proposalsWithMissingData);
+            
         }
     }
 
-    fetchValidatorsProposalData(proposalMetadata: ProposalMetadata) {
-        if (!(proposalMetadata.votingPowerStrategies[0].arguments[0].name == 'validators-proposal-hash')) return {};
-        return getValidatorsMock(proposalMetadata.votingPowerStrategies[0].arguments[0].value);
-    }
+    // async fetchValidatorsProposalData(proposalData: SingleProposalData) {
+    //     const res = await getConfigProposalResults(this.client4, proposalData);
+    //     return res;
+    // }
 
     async fetchProposalsVotingData() {
 
@@ -454,13 +458,12 @@ export class Fetcher {
             }
             
             if (proposalData.metadata.votingPowerStrategies.length && proposalData.metadata.votingPowerStrategies[0].type == VotingPowerStrategyType.ValidatorsVote) {
-                const validatorsVotingData = this.fetchValidatorsProposalData(proposalData.metadata);
+                await getConfigProposalResults(this.client4, proposalData);
+                // const validatorsVotingData = await this.fetchValidatorsProposalData(proposalData.metadata, proposalData);
                 
-                if (!(Object.keys(validatorsVotingData).length) ) return;
-
-                //@ts-ignore
-                proposalData.validatorsVotingData = validatorsVotingData;
-                this.proposalsData.set(proposalAddr, proposalData!);
+                // if (!validatorsVotingData || !(Object.keys(validatorsVotingData).length) ) return;
+                // proposalData.validatorsVotingData = validatorsVotingData;
+                // this.proposalsData.set(proposalAddr, proposalData!);
                 return;
             }
 
@@ -477,7 +480,7 @@ export class Fetcher {
                     txData: {allTxns: [], maxLt: undefined},
                     votingPower: {},
                     votes: {},
-                    proposalResult: {yes: 0, no: 0, abstain: 0, totalWeight: '0'}
+                    proposalResult: {yes: 0, no: 0, abstain: 0, totalWeights: '0'}
                 }
             }
 
@@ -565,10 +568,10 @@ export class Fetcher {
                 if (!proposalData) continue;
                 const votingData = proposalData!.votingData!;
                 if (!votingData) continue;
-                const totalWeight = Number(votingData.proposalResult.totalWeight);
+                const totalWeights = Number(votingData.proposalResult.totalWeights);
                 let lastTxTime = proposalData.votingData?.txData.allTxns[0].now;
                 if (!lastTxTime) continue;
-                sortingScore = Math.log10(totalWeight) * Object.keys(votingData.votes).length * (Date.now() - lastTxTime);
+                sortingScore = Math.log10(totalWeights) * Object.keys(votingData.votes).length * (Date.now() - lastTxTime);
                 emaSortingScore = emaSortingScore + alpha * (sortingScore - emaSortingScore);
               }
               

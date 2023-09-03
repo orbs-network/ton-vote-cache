@@ -18,7 +18,7 @@ export type ValidatorsProposalResult = RoundResult;
 export type ValidatorsVotingRoundDetails = {
     vsetId: string,
     votersList: string[],
-    totalWeight: string,
+    totalWeight?: string,
     weightRemaining: string,
     cycleStartTime: number,
     cycleEndTime: number,
@@ -63,14 +63,17 @@ export enum ProposalFetchingErrorReason {
     FETCH_NFT_ERROR = 0
 }
 
-export type ProposalsData = Map<string, {
-        daoAddress: string,
-        proposalAddress: string, 
-        metadata: ProposalMetadata,
-        votingData?: ProposalVotingData,
-        validatorsVotingData?: ValidatorsVotingData,
-        fetchErrorReason?: ProposalFetchingErrorReason
-}>
+export type SingleProposalData = {
+    daoAddress: string,
+    proposalAddress: string, 
+    metadata: ProposalMetadata,
+    votingData?: ProposalVotingData,
+    validatorsVotingData?: ValidatorsVotingData,
+    fetchErrorReason?: ProposalFetchingErrorReason,
+    config11?: any;
+}
+
+export type ProposalsData = Map<string, SingleProposalData>
 
 export interface NftHolders {
     [proposalAddress: string] : {[nftHolderAddr: string]: string[]}
