@@ -15,8 +15,8 @@ import { getConfigProposalResults } from "./validators/validators-config";
 
 dotenv.config();
 
-const DAOS_BATCH_SIZE = 50;
-const PROPOSALS_BATCH_SIZE = 50;
+const DAOS_BATCH_SIZE = 25;
+const PROPOSALS_BATCH_SIZE = 25;
 
 const UPDATE_DAOS_BATCH_SIZE = 15;
 const PROPOSAL_METADATA_BATCH_SIZE = 15;
@@ -383,10 +383,8 @@ export class Fetcher {
 
     async fetchMissingData() {
         
-        log(`fetchMissingData started: `);
-        console.log(`fetchMissingData started: `, this.proposalsWithMissingData);
-        
-       
+        log(`fetchMissingData started`);
+               
         for (const proposalAddr in this.proposalsWithMissingData) {
             console.log(`fetching missing data for proposal ${proposalAddr}`);
 
@@ -453,7 +451,7 @@ export class Fetcher {
 
         log(`fetchProposalsVotingData started`);
         
-        await this.processInBatches([...this.proposalsByState.active, ...this.proposalsByState.ended], 5, async (proposalAddr: string) => {
+        await this.processInBatches([...this.proposalsByState.active, ...this.proposalsByState.ended], 10, async (proposalAddr: string) => {
 
             if (this.proposalsByState.ended.has(proposalAddr) && (proposalAddr in this.fetchUpdate)) {
                 return;
