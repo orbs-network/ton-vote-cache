@@ -15,11 +15,11 @@ import { getConfigProposalResults } from "./validators/validators-config";
 
 dotenv.config();
 
-const DAOS_BATCH_SIZE = 25;
-const PROPOSALS_BATCH_SIZE = 25;
+const DAOS_BATCH_SIZE = 100;
+const PROPOSALS_BATCH_SIZE = 100;
 
-const UPDATE_DAOS_BATCH_SIZE = 15;
-const PROPOSAL_METADATA_BATCH_SIZE = 15;
+const UPDATE_DAOS_BATCH_SIZE = 100;
+const PROPOSAL_METADATA_BATCH_SIZE = 100;
 
 
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
@@ -447,6 +447,7 @@ export class Fetcher {
         }
     }
       
+    // TODO: handle ended proposal separately
     async fetchProposalsVotingData() {
 
         log(`fetchProposalsVotingData started`);
