@@ -56,8 +56,9 @@ export class Fetcher {
 
     async init() {
         await sendNotification('Ton Vote Cache Server started');
-        this.client = await TonVoteSdk.getClientV2();
-        // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
+        // this.client = await TonVoteSdk.getClientV2();
+        this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
+
         const endpointV4 = undefined//await getHttpV4Endpoint();
 
         this.client4 = await TonVoteSdk.getClientV4(endpointV4);
@@ -628,7 +629,9 @@ export class Fetcher {
             error(`unexpected error: ${(err as Error).stack}`);
             await sendNotification(`unexpected error: ${(err as Error).stack}`);
             log(`[Error] ------------------------------------------------------------`);                       
-            this.client = await TonVoteSdk.getClientV2();
+            // this.client = await TonVoteSdk.getClientV2();
+            this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
+
             this.client4 = await TonVoteSdk.getClientV4();
 
             console.log(`client v2 provider: ${this.client.parameters.endpoint}`);
