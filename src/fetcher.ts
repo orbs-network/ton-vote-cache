@@ -546,7 +546,7 @@ export class Fetcher {
         
         [...this.proposalsByState.ended].map(proposalAddr => {
 
-            if (proposalAddr in this.fetchUpdate) return;
+            // if (proposalAddr in this.fetchUpdate) return;
 
             let proposalData = this.proposalsData.get(proposalAddr);
 
@@ -630,6 +630,9 @@ export class Fetcher {
             log(`[Error] ------------------------------------------------------------`);                       
             this.client = await TonVoteSdk.getClientV2();
             this.client4 = await TonVoteSdk.getClientV4();
+
+            console.log(`new client provider: ${this.client.provider}`);
+            
         }
     }
 
