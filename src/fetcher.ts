@@ -15,11 +15,11 @@ import { getConfigProposalResults } from "./validators/validators-config";
 
 dotenv.config();
 
-const DAOS_BATCH_SIZE = 50;
-const PROPOSALS_BATCH_SIZE = 50;
+const DAOS_BATCH_SIZE = 20;
+const PROPOSALS_BATCH_SIZE = 20;
 
-const UPDATE_DAOS_BATCH_SIZE = 50;
-const PROPOSAL_METADATA_BATCH_SIZE = 50;
+const UPDATE_DAOS_BATCH_SIZE = 20;
+const PROPOSAL_METADATA_BATCH_SIZE = 20;
 
 
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
