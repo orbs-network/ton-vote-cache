@@ -21,6 +21,7 @@ const PROPOSALS_BATCH_SIZE = 20;
 const UPDATE_DAOS_BATCH_SIZE = 20;
 const PROPOSAL_METADATA_BATCH_SIZE = 20;
 
+const PROPOSALS_VOTING_DATA_BATCH_SIZE = 1;
 
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
 
@@ -452,7 +453,7 @@ export class Fetcher {
 
         log(`fetchProposalsVotingData started`);
         
-        await this.processInBatches([...this.proposalsByState.active, ...this.proposalsByState.ended], 10, async (proposalAddr: string) => {
+        await this.processInBatches([...this.proposalsByState.active, ...this.proposalsByState.ended], PROPOSALS_VOTING_DATA_BATCH_SIZE, async (proposalAddr: string) => {
 
             if (this.proposalsByState.ended.has(proposalAddr) && (proposalAddr in this.fetchUpdate)) {
                 return;
