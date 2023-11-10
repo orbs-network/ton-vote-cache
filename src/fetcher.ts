@@ -631,7 +631,7 @@ export class Fetcher {
             this.client = await TonVoteSdk.getClientV2();
             this.client4 = await TonVoteSdk.getClientV4();
 
-            console.log(`new client provider: ${this.client.provider}`);
+            console.log(`client v2 provider: ${this.client.parameters.endpoint}`);
             
         }
     }
