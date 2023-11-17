@@ -15,11 +15,11 @@ import { getConfigProposalResults } from "./validators/validators-config";
 
 dotenv.config();
 
-const DAOS_BATCH_SIZE = 20;
-const PROPOSALS_BATCH_SIZE = 20;
+const DAOS_BATCH_SIZE = 100;
+const PROPOSALS_BATCH_SIZE = 100;
 
-const UPDATE_DAOS_BATCH_SIZE = 20;
-const PROPOSAL_METADATA_BATCH_SIZE = 20;
+const UPDATE_DAOS_BATCH_SIZE = 100;
+const PROPOSAL_METADATA_BATCH_SIZE = 100;
 
 const PROPOSALS_VOTING_DATA_BATCH_SIZE = 1;
 
@@ -416,7 +416,7 @@ export class Fetcher {
                     break;
 
                 case VotingPowerStrategyType.TonBalanceWithValidators:
-                    let response = await fetch(OPERATING_VALIDATORS_ENDPOINT, {timeout: 60000})                    
+                    let response = await fetch(OPERATING_VALIDATORS_ENDPOINT, {timeout: 60000});                    
                     this.operatingValidatorsInfo[proposalAddr] = await response.json();
                     break;
 
