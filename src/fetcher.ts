@@ -263,7 +263,9 @@ export class Fetcher {
                     for (const chunk of chunks) {
                         chunk.forEach(proposalAddress => {
 
+                            // handle case of proposal loaded from json
                             if (this.proposalsData.has(proposalAddress)) {
+                                this.fetchUpdate[proposalAddress] = Date.now();
                                 let proposalState = getProposalState(proposalAddress, this.proposalsData.get(proposalAddress)?.metadata!)                                
                                 if (proposalState == ProposalState.pending) this.proposalsByState.pending = this.proposalsByState.pending.add(proposalAddress);
                                 else if (proposalState == ProposalState.active) this.proposalsByState.active = this.proposalsByState.active.add(proposalAddress);
