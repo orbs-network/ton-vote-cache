@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { ProposalMetadata } from "ton-vote-contracts-sdk";
 import { log } from './logger';
 import { ProposalState } from './types';
+import { Address } from 'ton';
 
 dotenv.config();
 
@@ -173,4 +174,13 @@ export function getProposalState(proposalAddress: string, metadata: ProposalMeta
   }  
 
   return ProposalState.undefined;
+}
+
+export function isValidAddress(address: string): boolean {
+  try {
+      Address.parse(address);
+      return true;
+  } catch (error) {
+      return false;
+  }
 }

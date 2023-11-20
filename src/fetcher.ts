@@ -5,7 +5,7 @@ import { MetadataArgs, DaoRoles, ReleaseMode, VotingPowerStrategyType } from "to
 import { DaosData, NftHolders, ProposalsWithMissingData, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus, ProposalState, OperatingValidatorsInfo } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
-import { getOrderedDaosByPriority, getProposalState, replacer, reviver, sendNotification } from "./helpers";
+import { getOrderedDaosByPriority, getProposalState, isValidAddress, replacer, reviver, sendNotification } from "./helpers";
 import fs from 'fs';
 import {log, error} from './logger';
 import fetch from 'node-fetch';
@@ -15,11 +15,11 @@ import { getConfigProposalResults } from "./validators/validators-config";
 
 dotenv.config();
 
-const DAOS_BATCH_SIZE = 100;
-const PROPOSALS_BATCH_SIZE = 100;
+const DAOS_BATCH_SIZE = 100; // TODO: check with 10
+const PROPOSALS_BATCH_SIZE = 5;
 
 const UPDATE_DAOS_BATCH_SIZE = 100;
-const PROPOSAL_METADATA_BATCH_SIZE = 100;
+const PROPOSAL_METADATA_BATCH_SIZE = 5;
 
 const PROPOSALS_VOTING_DATA_BATCH_SIZE = 1;
 
@@ -59,7 +59,7 @@ export class Fetcher {
         // this.client = await TonVoteSdk.getClientV2();
         this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
 
-        const endpointV4 = undefined//await getHttpV4Endpoint();
+        const endpointV4 = "https://mainnet-v4.tonhubapi.com"; //undefined//await getHttpV4Endpoint();
 
         this.client4 = await TonVoteSdk.getClientV4(endpointV4);
 
@@ -417,7 +417,16 @@ export class Fetcher {
 
                 case VotingPowerStrategyType.TonBalanceWithValidators:
                     let response = await fetch(OPERATING_VALIDATORS_ENDPOINT, {timeout: 60000});                    
-                    this.operatingValidatorsInfo[proposalAddr] = await response.json();
+                    const res = await response.json();
+                    
+                    const addressKeys = Object.keys(res).filter((key) => isValidAddress(key));
+                    
+                    const addressObjects: any = {};
+                    addressKeys.forEach((key) => {
+                      addressObjects[key] = res[key];
+                    });
+                                                              
+                    this.operatingValidatorsInfo[proposalAddr] = addressObjects;
                     break;
 
                 default:
@@ -440,22 +449,45 @@ export class Fetcher {
     //     return res;
     // }
 
-    async processInBatches<T>(array: T[], batchSize: number, callback: (item: T) => Promise<void>): Promise<void> {
+    async processInBatches<T>(
+        array: T[],
+        batchSize: number,
+        callback: (item: T) => Promise<void>
+      ): Promise<void> {
         const batchCount = Math.ceil(array.length / batchSize);
-        for(let i=0; i<batchCount; i++) {
-          await Promise.all(
-            array.slice(i*batchSize, (i+1)*batchSize).map(callback)
-          );
-        }
-    }
+        const results: PromiseSettledResult<void>[] = [];
       
+        for (let i = 0; i < batchCount; i++) {
+          const batchPromises = array
+            .slice(i * batchSize, (i + 1) * batchSize)
+            .map(callback);
+      
+          const settledBatch = await Promise.allSettled(batchPromises);
+          results.push(...settledBatch);
+        }
+      
+        const failedPromises = results.filter(result => result.status === 'rejected');
+      
+        if (failedPromises.length > 0) {
+          console.log('Failed Promises:');
+          failedPromises.forEach((result, index) => {
+            if ('reason' in result && result.reason !== undefined) {
+              console.log(`Promise ${index + 1}:`, result.reason);
+            } else {
+              console.log(`Promise ${index + 1}: Rejected with no reason provided`);
+            }
+          });
+        }
+
+    }
+            
     // TODO: handle ended proposal separately
     async fetchProposalsVotingData() {
 
         log(`fetchProposalsVotingData started`);
-        
-        await this.processInBatches([...this.proposalsByState.active, ...this.proposalsByState.ended], PROPOSALS_VOTING_DATA_BATCH_SIZE, async (proposalAddr: string) => {
 
+        await this.processInBatches([...this.proposalsByState.active, ...this.proposalsByState.ended], PROPOSALS_VOTING_DATA_BATCH_SIZE, async (proposalAddr: string) => {
+        
             if (this.proposalsByState.ended.has(proposalAddr) && (proposalAddr in this.fetchUpdate)) {
                 return;
             }
@@ -493,7 +525,7 @@ export class Fetcher {
                     proposalResult: {yes: 0, no: 0, abstain: 0, totalWeights: '0'}
                 }
             }
-
+            
             const newTx = await TonVoteSdk.getTransactions(this.client, proposalAddr, proposalVotingData.txData.maxLt);
 
             if (newTx.maxLt == proposalVotingData.txData.maxLt) {
@@ -514,7 +546,7 @@ export class Fetcher {
                 proposalData.metadata.votingPowerStrategies[0].type, 
                 this.nftHolders[proposalAddr], 
                 this.operatingValidatorsInfo[proposalAddr]);
-                            
+
             let newProposalResults = TonVoteSdk.getCurrentResults(newTx.allTxns, newVotingPower, proposalData.metadata);
 
             proposalVotingData.proposalResult = newProposalResults;
@@ -632,7 +664,9 @@ export class Fetcher {
             // this.client = await TonVoteSdk.getClientV2();
             this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
 
-            this.client4 = await TonVoteSdk.getClientV4();
+            const endpointV4 = "https://mainnet-v4.tonhubapi.com"; //undefined//await getHttpV4Endpoint();
+            this.client4 = await TonVoteSdk.getClientV4(endpointV4);
+            // this.client4 = await TonVoteSdk.getClientV4();
 
             console.log(`client v2 provider: ${this.client.parameters.endpoint}`);
             
