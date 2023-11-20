@@ -28,7 +28,13 @@ export function serve() {
     res.set('Fetcher-Status', fetcher.getStatus());
     next();
   });
-  
+
+  app.use((req, res, next) => {
+    const serverIPAddress = req.socket.localAddress;
+    res.set('Server-IP', serverIPAddress);
+    next();
+  });
+    
   app.get('/daos', (_request, response) => {
     response.status(200).json(state.getDaos());
   });
