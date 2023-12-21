@@ -15,13 +15,13 @@ import { getConfigProposalResults } from "./validators/validators-config";
 
 dotenv.config();
 
-const DAOS_BATCH_SIZE = 100; // TODO: check with 10
-const PROPOSALS_BATCH_SIZE = 5;
+const DAOS_BATCH_SIZE = 5; 
+const PROPOSALS_BATCH_SIZE = 3;
 
-const UPDATE_DAOS_BATCH_SIZE = 100;
-const PROPOSAL_METADATA_BATCH_SIZE = 5;
+const UPDATE_DAOS_BATCH_SIZE = 5;
+const PROPOSAL_METADATA_BATCH_SIZE = 3;
 
-const PROPOSALS_VOTING_DATA_BATCH_SIZE = 1;
+const PROPOSALS_VOTING_DATA_BATCH_SIZE = 3;
 
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
 
@@ -55,11 +55,17 @@ export class Fetcher {
     }
 
     async init() {
-        await sendNotification('Ton Vote Cache Server started');
-        // this.client = await TonVoteSdk.getClientV2();
-        this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
+        await sendNotification('Ton Vote Cache Server started');        
+        
+        // this.client = new TonClient({endpoint: "http://192.96.205.37/1/mainnet/toncenter-api-v2/jsonRPC"}) // wa1
+        // this.client = new TonClient({endpoint: "http://207.244.121.118/1/mainnet/toncenter-api-v2/jsonRPC"}) // 500 wa2
+        this.client = new TonClient({endpoint: "http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC"}) // working am3
+        console.log(this.client);
+        
+        // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
 
-        const endpointV4 = "https://mainnet-v4.tonhubapi.com"; //undefined//await getHttpV4Endpoint();
+        const endpointV4 = undefined; // await getHttpV4Endpoint();
+        // const endpointV4 = "https://mainnet-v4.tonhubapi.com"; 
 
         this.client4 = await TonVoteSdk.getClientV4(endpointV4);
 
@@ -131,7 +137,7 @@ export class Fetcher {
         
         log(`daosData.nextDaoId = ${this.daosData.nextDaoId}`);
         
-        let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, this.daosData.nextDaoId, DAOS_BATCH_SIZE, 'asc');
+        let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, this.daosData.nextDaoId, DAOS_BATCH_SIZE);
         
         if (newDaos.daoAddresses.length == 0) return;
 
@@ -160,33 +166,34 @@ export class Fetcher {
               daoProposals: []
             });
           }));
-        }
         
-        const sortedDaos = new Map<string, {
-            daoAddress: string,
-            daoId: number,
-            daoMetadata: {metadataAddress: string, metadataArgs: MetadataArgs},
-            daoRoles: DaoRoles,
-            nextProposalId: number,
-            daoProposals: string[]
-        }>(Array.from(this.daosData.daos.entries()).sort((a, b) => a[1].daoId - b[1].daoId));
+            const sortedDaos = new Map<string, {
+                daoAddress: string,
+                daoId: number,
+                daoMetadata: {metadataAddress: string, metadataArgs: MetadataArgs},
+                daoRoles: DaoRoles,
+                nextProposalId: number,
+                daoProposals: string[]
+            }>(Array.from(this.daosData.daos.entries()).sort((a, b) => a[1].daoId - b[1].daoId));
 
-        const orderedDaosFromFile: string[] = await getOrderedDaosByPriority();
+            const orderedDaosFromFile: string[] = await getOrderedDaosByPriority();
+            
+            let mergedDaosData: DaosData = {nextDaoId: newDaos.endDaoId, daos: new Map()};
+            for (const key of orderedDaosFromFile) {
+            if (sortedDaos.has(key)) {
+                mergedDaosData.daos.set(key, sortedDaos.get(key)!);
+                sortedDaos.delete(key);
+            }
+            }
         
-        let mergedDaosData: DaosData = {nextDaoId: newDaos.endDaoId, daos: new Map()};
-        for (const key of orderedDaosFromFile) {
-          if (sortedDaos.has(key)) {
-            mergedDaosData.daos.set(key, sortedDaos.get(key)!);
-            sortedDaos.delete(key);
-          }
+            for (const [key, value] of sortedDaos) {
+            mergedDaosData.daos.set(key, value);
+            }
+                
+            this.daosData.daos = mergedDaosData.daos;
+            this.daosData.nextDaoId = mergedDaosData.nextDaoId;
+            await TonVoteSdk.sleep(1000);
         }
-      
-        for (const [key, value] of sortedDaos) {
-          mergedDaosData.daos.set(key, value);
-        }
-              
-        this.daosData.daos = mergedDaosData.daos;
-        this.daosData.nextDaoId = mergedDaosData.nextDaoId;
     }
 
     async fetchDaosState() {
@@ -226,6 +233,7 @@ export class Fetcher {
                     error(`Failed to process daoAddress at index ${index} with reason: ${result.reason}`);
                 }
             });
+            await TonVoteSdk.sleep(1000);
         }
     }
       
@@ -307,6 +315,7 @@ export class Fetcher {
                 }
 
             }));
+            await TonVoteSdk.sleep(1000);
         }               
     }
 
@@ -333,6 +342,7 @@ export class Fetcher {
               metadata: proposalMetadata
             });
           }));
+          await TonVoteSdk.sleep(1000);
         }                            
     }
 
@@ -436,6 +446,8 @@ export class Fetcher {
                     
             }
             
+            await TonVoteSdk.sleep(1000);
+
             console.log(`deleting ${proposalAddr} from proposalsWithMissingData ...`);
             
             this.proposalsWithMissingData[proposalAddr].delete(nextValue);            
@@ -466,6 +478,7 @@ export class Fetcher {
       
           const settledBatch = await Promise.allSettled(batchPromises);
           results.push(...settledBatch);
+          await TonVoteSdk.sleep(1000); 
         }
       
         const failedPromises = results.filter(result => result.status === 'rejected');
@@ -572,7 +585,6 @@ export class Fetcher {
             
             this.fetchUpdate[proposalAddr] = Date.now();
             return;
-
         });
     }
 
@@ -664,11 +676,10 @@ export class Fetcher {
             await sendNotification(`unexpected error: ${(err as Error).stack}`);
             log(`[Error] ------------------------------------------------------------`);                       
             // this.client = await TonVoteSdk.getClientV2();
-            this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
-
-            const endpointV4 = "https://mainnet-v4.tonhubapi.com"; //undefined//await getHttpV4Endpoint();
-            this.client4 = await TonVoteSdk.getClientV4(endpointV4);
             // this.client4 = await TonVoteSdk.getClientV4();
+
+            // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
+            // this.client4 = await TonVoteSdk.getClientV4("https://mainnet-v4.tonhubapi.com");
 
             console.log(`client v2 provider: ${this.client.parameters.endpoint}`);
             
