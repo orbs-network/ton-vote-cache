@@ -192,7 +192,7 @@ export class Fetcher {
                 
             this.daosData.daos = mergedDaosData.daos;
             this.daosData.nextDaoId = mergedDaosData.nextDaoId;
-            await TonVoteSdk.sleep(1000);
+            await TonVoteSdk.sleep(2000);
         }
     }
 
@@ -233,7 +233,7 @@ export class Fetcher {
                     error(`Failed to process daoAddress at index ${index} with reason: ${result.reason}`);
                 }
             });
-            await TonVoteSdk.sleep(1000);
+            await TonVoteSdk.sleep(2000);
         }
     }
       
@@ -315,7 +315,7 @@ export class Fetcher {
                 }
 
             }));
-            await TonVoteSdk.sleep(1000);
+            await TonVoteSdk.sleep(2000);
         }               
     }
 
@@ -342,7 +342,7 @@ export class Fetcher {
               metadata: proposalMetadata
             });
           }));
-          await TonVoteSdk.sleep(1000);
+          await TonVoteSdk.sleep(2000);
         }                            
     }
 
@@ -446,7 +446,7 @@ export class Fetcher {
                     
             }
             
-            await TonVoteSdk.sleep(1000);
+            await TonVoteSdk.sleep(2000);
 
             console.log(`deleting ${proposalAddr} from proposalsWithMissingData ...`);
             
@@ -478,7 +478,7 @@ export class Fetcher {
       
           const settledBatch = await Promise.allSettled(batchPromises);
           results.push(...settledBatch);
-          await TonVoteSdk.sleep(1000); 
+          await TonVoteSdk.sleep(2000); 
         }
       
         const failedPromises = results.filter(result => result.status === 'rejected');
