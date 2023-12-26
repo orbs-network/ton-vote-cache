@@ -113,7 +113,7 @@ export function serve() {
   });
 
   fetcher.init().then(() => {Logger.log('fetcher init completed')});
-  const fetcherSyncTask = new TaskLoop(() => fetcher.run(), 2 * 60 * 1000);  
+  const fetcherSyncTask = new TaskLoop(() => fetcher.run(), 1 * 60 * 1000);  
   fetcherSyncTask.start();
 
   const server = app.listen(PORT, '0.0.0.0', () =>
