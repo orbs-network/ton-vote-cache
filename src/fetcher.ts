@@ -59,8 +59,8 @@ export class Fetcher {
         
         // this.client = new TonClient({endpoint: "http://192.96.205.37/1/mainnet/toncenter-api-v2/jsonRPC"}) // wa1
         // this.client = new TonClient({endpoint: "http://207.244.121.118/1/mainnet/toncenter-api-v2/jsonRPC"}) // 500 wa2
-        this.client = await TonVoteSdk.getClientV2();
-        // this.client = new TonClient({endpoint: "http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC"}) // working am3
+        // this.client = await TonVoteSdk.getClientV2();
+        this.client = new TonClient({endpoint: "http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC"}) // working am3
         // console.log(this.client);
         
         // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
