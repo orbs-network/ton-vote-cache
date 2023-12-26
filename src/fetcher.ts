@@ -676,6 +676,10 @@ export class Fetcher {
             error(`unexpected error: ${(err as Error).stack}`);
             await sendNotification(`unexpected error: ${(err as Error).stack}`);
             log(`[Error] ------------------------------------------------------------`);                       
+            
+            this.writeEndedProposalToDb();            
+            this.setState();
+
             console.log('sleep for 1 min');            
             TonVoteSdk.sleep(1 * 60 * 1000);
             // this.client = await TonVoteSdk.getClientV2();
