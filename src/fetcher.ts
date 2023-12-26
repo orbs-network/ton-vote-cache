@@ -193,7 +193,7 @@ export class Fetcher {
                 
             this.daosData.daos = mergedDaosData.daos;
             this.daosData.nextDaoId = mergedDaosData.nextDaoId;
-            await TonVoteSdk.sleep(2000);
+            await TonVoteSdk.sleep(5000);
         }
     }
 
@@ -234,7 +234,7 @@ export class Fetcher {
                     error(`Failed to process daoAddress at index ${index} with reason: ${result.reason}`);
                 }
             });
-            await TonVoteSdk.sleep(2000);
+            await TonVoteSdk.sleep(5000);
         }
     }
       
