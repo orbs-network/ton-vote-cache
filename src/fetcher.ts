@@ -11,6 +11,7 @@ import {log, error} from './logger';
 import fetch from 'node-fetch';
 import { getConfigProposalResults } from "./validators/validators-config";
 // import { getHttpV4Endpoint } from "@orbs-network/ton-access";
+import axios, { AxiosAdapter } from 'axios';
 
 
 dotenv.config();
@@ -60,7 +61,19 @@ export class Fetcher {
         // this.client = new TonClient({endpoint: "http://192.96.205.37/1/mainnet/toncenter-api-v2/jsonRPC"}) // wa1
         // this.client = new TonClient({endpoint: "http://207.244.121.118/1/mainnet/toncenter-api-v2/jsonRPC"}) // 500 wa2
         // this.client = await TonVoteSdk.getClientV2();
-        this.client = new TonClient({endpoint: "http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC"}) // working am3
+        const customHeader = {
+            'orbs-backend': 'ton-vote',
+        };
+
+        const tonClientParams = {
+            endpoint: 'http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC', // working am3
+            httpAdapter:  axios.create({
+            headers: customHeader,
+          }) as AxiosAdapter,
+        };
+
+        this.client = new TonClient(tonClientParams)
+
         // console.log(this.client);
         
         // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
