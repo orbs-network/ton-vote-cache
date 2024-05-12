@@ -16,13 +16,8 @@ import axios, { AxiosAdapter } from 'axios';
 
 dotenv.config();
 
-const DAOS_BATCH_SIZE = 2; 
-const PROPOSALS_BATCH_SIZE = 2;
-
-const UPDATE_DAOS_BATCH_SIZE = 2;
-const PROPOSAL_METADATA_BATCH_SIZE = 2;
-
-const PROPOSALS_VOTING_DATA_BATCH_SIZE = 1;
+const BATCH_SIZE = 5
+const PROPOSALS_VOTING_DATA_BATCH_SIZE = 3;
 
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
 
@@ -59,6 +54,7 @@ export class Fetcher {
         await sendNotification('Ton Vote Cache Server started');        
         
         // this.client = new TonClient({endpoint: "http://192.96.205.37/1/mainnet/toncenter-api-v2/jsonRPC"}) // wa1
+        // this.client = new TonClient({endpoint: 'http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC'}) 
         // this.client = new TonClient({endpoint: "http://207.244.121.118/1/mainnet/toncenter-api-v2/jsonRPC"}) // 500 wa2
         // this.client = await TonVoteSdk.getClientV2();
         const customHeader = {
@@ -76,7 +72,7 @@ export class Fetcher {
 
         // console.log(this.client);
         
-        // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
+        this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
 
         const endpointV4 = undefined; // await getHttpV4Endpoint();
         // const endpointV4 = "https://mainnet-v4.tonhubapi.com"; 
@@ -151,13 +147,13 @@ export class Fetcher {
         
         log(`daosData.nextDaoId = ${this.daosData.nextDaoId}`);
         
-        let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, this.daosData.nextDaoId, DAOS_BATCH_SIZE);
+        let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, this.daosData.nextDaoId, BATCH_SIZE);
         
         if (newDaos.daoAddresses.length == 0) return;
 
         log(`${newDaos.daoAddresses.length} new daos will be added: ${newDaos.daoAddresses}`);
 
-        const batchSize = UPDATE_DAOS_BATCH_SIZE; 
+        const batchSize = BATCH_SIZE; 
         const daos = newDaos.daoAddresses;
         const chunks = [];
         for (let i = 0; i < daos.length; i += batchSize) {
@@ -206,7 +202,7 @@ export class Fetcher {
                 
             this.daosData.daos = mergedDaosData.daos;
             this.daosData.nextDaoId = mergedDaosData.nextDaoId;
-            await TonVoteSdk.sleep(5000);
+            // await TonVoteSdk.sleep(5000);
         }
     }
 
@@ -215,7 +211,7 @@ export class Fetcher {
     
         if (this.daosData.daos.size == 0) return;
     
-        const batchSize = UPDATE_DAOS_BATCH_SIZE; 
+        const batchSize = BATCH_SIZE; 
         const daos = Array.from(this.daosData.daos.keys());
         const chunks = [];
         for (let i = 0; i < daos.length; i += batchSize) {
@@ -247,7 +243,7 @@ export class Fetcher {
                     error(`Failed to process daoAddress at index ${index} with reason: ${result.reason}`);
                 }
             });
-            await TonVoteSdk.sleep(5000);
+            // await TonVoteSdk.sleep(5000);
         }
     }
       
@@ -256,7 +252,7 @@ export class Fetcher {
         log(`fetchNewProposals started`);
 
         const daos = Array.from(this.daosData.daos.entries());
-        const daoBatchSize = DAOS_BATCH_SIZE;
+        const daoBatchSize = BATCH_SIZE;
         const daoBatches = [];
         
         for (let i = 0; i < daos.length; i += daoBatchSize) {
@@ -268,7 +264,7 @@ export class Fetcher {
             await Promise.all(daoBatch.map(async ([daoAddress, daoData]) => {
                 
                 log(`fetching proposals for dao ${daoAddress}`);
-                const newProposals = await TonVoteSdk.getDaoProposals(this.client, daoAddress, daoData.nextProposalId, PROPOSALS_BATCH_SIZE, 'asc');
+                const newProposals = await TonVoteSdk.getDaoProposals(this.client, daoAddress, daoData.nextProposalId, BATCH_SIZE, 'asc');
                 
                 if (newProposals.proposalAddresses) {
                     
@@ -276,7 +272,7 @@ export class Fetcher {
                     const allPromises: Promise<void>[] = [];
                     const chunks = [];
                     const proposalAddresses = newProposals.proposalAddresses;
-                    const batchSize = PROPOSAL_METADATA_BATCH_SIZE;
+                    const batchSize = BATCH_SIZE;
                     
                     for (let i = 0; i < proposalAddresses.length; i += batchSize) {
                         chunks.push(proposalAddresses.slice(i, i + batchSize));
@@ -329,7 +325,7 @@ export class Fetcher {
                 }
 
             }));
-            await TonVoteSdk.sleep(2000);
+            // await TonVoteSdk.sleep(2000);
         }               
     }
 
@@ -356,7 +352,7 @@ export class Fetcher {
               metadata: proposalMetadata
             });
           }));
-          await TonVoteSdk.sleep(2000);
+        //   await TonVoteSdk.sleep(2000);
         }                            
     }
 
@@ -460,7 +456,7 @@ export class Fetcher {
                     
             }
             
-            await TonVoteSdk.sleep(2000);
+            // await TonVoteSdk.sleep(2000);
 
             console.log(`deleting ${proposalAddr} from proposalsWithMissingData ...`);
             
@@ -492,7 +488,7 @@ export class Fetcher {
       
           const settledBatch = await Promise.allSettled(batchPromises);
           results.push(...settledBatch);
-          await TonVoteSdk.sleep(2000); 
+        //   await TonVoteSdk.sleep(2000); 
         }
       
         const failedPromises = results.filter(result => result.status === 'rejected');
@@ -693,8 +689,8 @@ export class Fetcher {
             this.writeEndedProposalToDb();            
             this.setState();
 
-            console.log('sleep for 1 min');            
-            TonVoteSdk.sleep(1 * 60 * 1000);
+            // console.log('sleep for 1 min');            
+            // TonVoteSdk.sleep(1 * 60 * 1000);
             // this.client = await TonVoteSdk.getClientV2();
             // this.client4 = await TonVoteSdk.getClientV4();
 
