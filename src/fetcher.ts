@@ -16,7 +16,7 @@ import { getConfigProposalResults } from "./validators/validators-config";
 
 dotenv.config();
 
-const BATCH_SIZE = 5
+const BATCH_SIZE = 3
 const PROPOSALS_VOTING_DATA_BATCH_SIZE = 3;
 
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
