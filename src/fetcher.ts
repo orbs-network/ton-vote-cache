@@ -53,8 +53,8 @@ export class Fetcher {
     async init() {
         await sendNotification('Ton Vote Cache Server started');        
         
-        this.client = new TonClient({endpoint: "http://192.96.205.37/1/mainnet/toncenter-api-v2/jsonRPC"}) // wa1
-        // this.client = new TonClient({endpoint: 'http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC'}) 
+        // this.client = new TonClient({endpoint: "http://192.96.205.37/1/mainnet/toncenter-api-v2/jsonRPC"}) // wa1
+        this.client = new TonClient({endpoint: 'http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC'}) 
         // this.client = new TonClient({endpoint: "http://207.244.121.118/1/mainnet/toncenter-api-v2/jsonRPC"}) // 500 wa2
         // this.client = await TonVoteSdk.getClientV2();
 
