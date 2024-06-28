@@ -16,7 +16,7 @@ import { getConfigProposalResults } from "./validators/validators-config";
 
 dotenv.config();
 
-const BATCH_SIZE = 3
+const BATCH_SIZE = 5
 const PROPOSALS_VOTING_DATA_BATCH_SIZE = 3;
 
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
@@ -53,7 +53,7 @@ export class Fetcher {
     async init() {
         await sendNotification('Ton Vote Cache Server started');        
         
-        // this.client = new TonClient({endpoint: "http://192.96.205.37/1/mainnet/toncenter-api-v2/jsonRPC"}) // wa1
+        this.client = new TonClient({endpoint: "http://192.96.205.37/1/mainnet/toncenter-api-v2/jsonRPC"}) // wa1
         // this.client = new TonClient({endpoint: 'http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC'}) 
         // this.client = new TonClient({endpoint: "http://207.244.121.118/1/mainnet/toncenter-api-v2/jsonRPC"}) // 500 wa2
         // this.client = await TonVoteSdk.getClientV2();
@@ -73,12 +73,13 @@ export class Fetcher {
         // this.client = new TonClient(tonClientParams)
 
         
-        this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
+        // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
 
-        const endpointV4 = undefined; // await getHttpV4Endpoint();
-        // const endpointV4 = "https://mainnet-v4.tonhubapi.com"; 
+        // const endpointV4 = undefined; // await getHttpV4Endpoint();
+        const endpointV4 = "https://mainnet-v4.tonhubapi.com"; 
 
-        this.client4 = await TonVoteSdk.getClientV4(endpointV4);
+        // this.client4 = await TonVoteSdk.getClientV4(endpointV4);
+        this.client4 = new TonClient4({ endpoint: endpointV4, timeout: 15000 });
 
         log(`starting with masterchainInfo: ${JSON.stringify(await this.client.getMasterchainInfo())}`)
         await this.updateRegistry();
