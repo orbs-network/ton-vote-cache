@@ -1,7 +1,7 @@
 {
   "name": "ton-vote-server",
   "private": false,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "homepage": "https://ton.vote/",
   "scripts": {
     "typecheck": "tsc --noEmit --skipLibCheck",
