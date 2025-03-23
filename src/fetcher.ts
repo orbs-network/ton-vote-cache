@@ -16,8 +16,8 @@ import { getConfigProposalResults } from "./validators/validators-config";
 
 dotenv.config();
 
-const BATCH_SIZE = 5
-const PROPOSALS_VOTING_DATA_BATCH_SIZE = 3;
+const BATCH_SIZE = 1;
+const PROPOSALS_VOTING_DATA_BATCH_SIZE = 1;
 
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
 
@@ -51,44 +51,48 @@ export class Fetcher {
     }
 
     async init() {
-        await sendNotification('Ton Vote Cache Server started');        
-        
-        // this.client = new TonClient({endpoint: "http://192.96.205.37/1/mainnet/toncenter-api-v2/jsonRPC"}) // wa1
-        this.client = new TonClient({endpoint: 'http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC'}) 
-        // this.client = new TonClient({endpoint: "http://207.244.121.118/1/mainnet/toncenter-api-v2/jsonRPC"}) // 500 wa2
-        // this.client = await TonVoteSdk.getClientV2();
-
-        
-        // const customHeader = {
-        //     'orbs-backend': 'ton-vote',
-        // };
-
-        // const tonClientParams = {
-        //     endpoint: 'http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC', // working am3
-        //     httpAdapter:  axios.create({
-        //     headers: customHeader,
-        //   }) as AxiosAdapter,
-        // };
-
-        // this.client = new TonClient(tonClientParams)
-
-        
-        // this.client = new TonClient({endpoint: 'https://mainnet.tonhubapi.com/jsonRPC'}); 
-
-        // const endpointV4 = undefined; // await getHttpV4Endpoint();
-        const endpointV4 = "https://mainnet-v4.tonhubapi.com"; 
-
-        // this.client4 = await TonVoteSdk.getClientV4(endpointV4);
-        this.client4 = new TonClient4({ endpoint: endpointV4, timeout: 15000 });
-
-        log(`starting with masterchainInfo: ${JSON.stringify(await this.client.getMasterchainInfo())}`)
-        await this.updateRegistry();
-
-        this.getState();
-        this.readLocalDb();        
-    }
-
-    readLocalDb() {
+      const maxRetries = 10;
+      let attempt = 0;
+  
+      while (attempt < maxRetries) {
+          try {
+              attempt++;
+              await sendNotification('Ton Vote Cache Server started');        
+  
+              // Initialize TonClient
+              // this.client = new TonClient({ endpoint: 'http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC' });
+              this.client = new TonClient({ endpoint: 'https://toncenter.com/api/v2/jsonRPC' });
+              // this.client = await TonVoteSdk.getClientV2();
+              console.log(`client v2 provider: ${this.client.parameters.endpoint}`);
+  
+              // Set up the V4 client endpoint
+              const endpointV4 = "https://mainnet-v4.tonhubapi.com"; 
+              this.client4 = new TonClient4({ endpoint: endpointV4, timeout: 15000 });
+  
+              // Log masterchain info to confirm connection
+              log(`starting with masterchainInfo: ${JSON.stringify(await this.client.getMasterchainInfo())}`);
+  
+              // Update registry and state
+              await this.updateRegistry();
+              this.getState();
+              this.readLocalDb();        
+  
+              log(`init completed successfully on attempt ${attempt}`);
+              break;  // Exit the loop if init is successful
+          } catch (err) {
+              error(`init attempt ${attempt} failed: ${err}`);
+              if (attempt < maxRetries) {
+                  log(`Retrying init in 5 seconds...`);
+                  await TonVoteSdk.sleep(5000);
+              } else {
+                  error(`All ${maxRetries} attempts to init failed`);
+                  throw err;
+              }
+          }
+      }
+  }
+  
+  readLocalDb() {
 
         try {
           const fileNames = fs.readdirSync(TON_VOTE_DB_PATH);
@@ -462,7 +466,7 @@ export class Fetcher {
 
             console.log(`deleting ${proposalAddr} from proposalsWithMissingData ...`);
             
-            this.proposalsWithMissingData[proposalAddr].delete(nextValue);            
+            this.proposalsWithMissingData[proposalAddr].delete(nextValue!);            
             if (this.proposalsWithMissingData[proposalAddr].size == 0) delete this.proposalsWithMissingData[proposalAddr];
 
             console.log(this.proposalsWithMissingData);
