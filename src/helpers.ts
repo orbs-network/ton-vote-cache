@@ -3,11 +3,11 @@ import dotenv from 'dotenv';
 import { ProposalMetadata, VotingPowerStrategy } from "ton-vote-contracts-sdk";
 import { log } from './logger';
 import { ProposalState } from './types';
-import { Address, TupleItem, Cell, TonClient4, TonClient } from 'ton';
+import { Address, TupleItem, Cell } from 'ton';
 import fs from 'fs/promises';
 import path from 'path';
 import { backOff } from 'exponential-backoff';
-import * as TonVoteSdk from "ton-vote-contracts-sdk";
+// import * as TonVoteSdk from "ton-vote-contracts-sdk";
 
 const CHECKPOINT_DIR = process.cwd(); // or wherever you prefer
 const BATCH_SIZE = 25;
