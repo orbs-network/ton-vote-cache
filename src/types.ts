@@ -60,7 +60,8 @@ export type ProposalsWithMissingData = {[key: string]: Set<VotingPowerStrategyTy
 export type FetcherStatus = 'Init' | 'Synced' | 'Error';
 
 export enum ProposalFetchingErrorReason {
-    FETCH_NFT_ERROR = 0
+    FETCH_NFT_ERROR = 0,
+    FETCH_TRANSACTIONS_ERROR = 1
 }
 
 export type SingleProposalData = {
