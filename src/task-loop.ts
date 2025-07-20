@@ -5,7 +5,7 @@ export class TaskLoop {
   private handle: NodeJS.Timeout | undefined;
   private started = false;
 
-  constructor(private task: () => Promise<unknown>, private pause: number) {}
+  constructor(private task: () => Promise<unknown>, private delay: number) {}
 
   runTask = async () => {
     try {
@@ -21,12 +21,9 @@ export class TaskLoop {
   };
 
   scheduleNextRun = () => {
-    const now = new Date();
-    const secondsPassed = now.getSeconds() * 1000 + now.getMilliseconds();
-    const delay = (this.pause - secondsPassed) % this.pause;    
-    // Logger.log(`next task was scheduled to start in ${delay/1000} seconds`);
+    // Logger.log(`next task was scheduled to start in ${this.delay/1000} seconds`);
     
-    this.handle = setTimeout(this.runTask, delay);
+    this.handle = setTimeout(this.runTask, this.delay);
   };
 
   start = () => {
