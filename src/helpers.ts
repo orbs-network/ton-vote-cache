@@ -376,24 +376,24 @@ export async function processInBatches<T>(
 }
    
 
-async function testGetAllNftHolders() {
-  try {
-    const client = new TonClient({ endpoint: 'https://toncenter.com/api/v2/jsonRPC' });
-    const client4 = new TonClient4({ endpoint: "https://mainnet-v4.tonhubapi.com", timeout: 15000 });
+// async function testGetAllNftHolders() {
+//   try {
+//     const client = new TonClient({ endpoint: 'https://toncenter.com/api/v2/jsonRPC' });
+//     const client4 = new TonClient4({ endpoint: "https://mainnet-v4.tonhubapi.com", timeout: 15000 });
     
-    const proposalMetadata = await TonVoteSdk.getProposalMetadata(
-      client, 
-      client4, 
-      "EQCcEiCESPj3giMrUMLBn1eLg7XmcgaJ89sS1MRidP2PaC7G"
-    );
+//     const proposalMetadata = await TonVoteSdk.getProposalMetadata(
+//       client, 
+//       client4, 
+//       "EQCcEiCESPj3giMrUMLBn1eLg7XmcgaJ89sS1MRidP2PaC7G"
+//     );
     
-    console.log(`proposalMetadata: ${JSON.stringify(proposalMetadata)}`);
+//     console.log(`proposalMetadata: ${JSON.stringify(proposalMetadata)}`);
 
-    const result = await getAllNftHolders(client4, proposalMetadata);
-    console.log('Result:', result);
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
+//     const result = await getAllNftHolders(client4, proposalMetadata);
+//     console.log('Result:', result);
+//   } catch (error) {
+//     console.error('Error:', error);
+//   }
+// }
 
 // testGetAllNftHolders();
