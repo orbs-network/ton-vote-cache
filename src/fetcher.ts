@@ -37,14 +37,16 @@ export class Fetcher {
     private fetchUpdate: {[proposalAddress: string]: number} = {};
     private proposalsByState: ProposalsByState = {pending: new Set(), active: new Set(), ended: new Set()};
 
-    private daosData!: DaosData;
-    private proposalsData!: ProposalsData;
-    private nftHolders!: NftHolders;
-    private operatingValidatorsInfo!: OperatingValidatorsInfo;
+    private daosData: DaosData = { nextDaoId: 0, daos: new Map() };
+    private proposalsData: ProposalsData = new Map();
+    private nftHolders: NftHolders = {};
+    private operatingValidatorsInfo: OperatingValidatorsInfo = {};
 
     private proposalsWithMissingData: ProposalsWithMissingData = {};
 
     private status: FetcherStatus = 'Init';
+    private hasNewDaos: boolean = false;
+    private hasNewEndedProposals: boolean = false;
 
     constructor(state: State) {
         this.state = state;
@@ -74,8 +76,8 @@ export class Fetcher {
   
               // Update registry and state
               await this.updateRegistry();
-              this.getState();
               this.readLocalDb();        
+              this.updateProposalsByStateFromExistingData();
   
               log(`init completed successfully on attempt ${attempt}`);
               break;  // Exit the loop if init is successful
@@ -119,7 +121,7 @@ export class Fetcher {
               };
             }
           } else {
-            log(`Extracted data from ${fileName}`);
+            log(`Extracted proposal data from ${fileName}`);
             this.proposalsData.set(fileName.replace('.json', ''), jsonData);
           }
 
@@ -143,6 +145,32 @@ export class Fetcher {
     this.state.setProposalsData(this.proposalsData);
     this.state.setDaosData(this.daosData);                        
 }
+
+    updateProposalsByStateFromExistingData() {
+        log(`UpdateProposalsByStateFromExistingData started`);
+        
+        // Iterate through all existing proposals and categorize them
+        for (const [proposalAddress, proposalData] of this.proposalsData) {
+            if (!proposalData.metadata) {
+                log(`Unexpected error: could not find metadata at proposal ${proposalAddress}`);
+                continue;
+            }
+            
+            let proposalState = getProposalState(proposalAddress, proposalData.metadata);
+            
+            if (proposalState === ProposalState.pending) {
+                this.proposalsByState.pending.add(proposalAddress);
+            } else if (proposalState === ProposalState.active) {
+                this.proposalsByState.active.add(proposalAddress);
+            } else if (proposalState === ProposalState.ended) {
+                this.proposalsByState.ended.add(proposalAddress);
+            }
+            
+            this.fetchUpdate[proposalAddress] = Date.now();
+        }
+        
+        log(`ProposalsByState initialized: pending=${this.proposalsByState.pending.size}, active=${this.proposalsByState.active.size}, ended=${this.proposalsByState.ended.size}`);
+    }
 
     async updateRegistry() {
 
@@ -171,18 +199,19 @@ export class Fetcher {
 
     async fetchNewDaos() {
         
-        log(`fetchNewDaos started`);
+        log(`FetchNewDaos started`);
         
         log(`daosData.nextDaoId = ${this.daosData.nextDaoId}`);
         
         let newDaos = await TonVoteSdk.getDaos(this.client, RELEASE_MODE, this.daosData.nextDaoId, BATCH_SIZE);
         
         if (newDaos.daoAddresses.length == 0) { 
-            log(`no new daos found, skipping daos fetching`);
+            log(`No new daos found, skipping daos fetching`);
             return;
         }
 
         log(`${newDaos.daoAddresses.length} new daos will be added: ${newDaos.daoAddresses}`);
+        this.hasNewDaos = true; // Set flag when new DAOs are found
 
         const batchSize = BATCH_SIZE; 
         const daos = newDaos.daoAddresses;
@@ -196,7 +225,7 @@ export class Fetcher {
             const daoState = await TonVoteSdk.getDaoState(this.client, daoAddress);
             const metadataArgs = await TonVoteSdk.getDaoMetadata(this.client, daoState.metadata);
             
-            log(`inserting daoState and metadata for dao at address ${daoAddress}`);
+            log(`Inserting daoState and metadata for dao at address ${daoAddress}`);
             
             this.daosData.daos.set(daoAddress, {
               daoAddress: daoAddress,
@@ -234,10 +263,9 @@ export class Fetcher {
             this.daosData.daos = mergedDaosData.daos;
             this.daosData.nextDaoId = mergedDaosData.nextDaoId;
             
-            // Save DAOs to JSON file immediately after fetching new ones
-            this.writeDaosToDb();
-            // await TonVoteSdk.sleep(5000);
         }
+
+        this.writeDaosToDb();
     }
 
     async fetchNewProposals() {
@@ -322,33 +350,6 @@ export class Fetcher {
         }               
     }
 
-    async fetchProposalsMetadata() {
-
-        log(`fetchProposalsMetadata started`);
-
-        const pendingProposalsArray = [...this.proposalsByState.pending];
-        const batchSize = 50; // PROPOSAL_METADATA_BATCH_SIZE;
-        
-        while (pendingProposalsArray.length > 0) {
-          const batch = pendingProposalsArray.splice(0, Math.min(batchSize, pendingProposalsArray.length));
-        
-          await Promise.all(batch.map(async (proposalAddress) => {
-            const proposalMetadata = await TonVoteSdk.getProposalMetadata(this.client, this.client4, proposalAddress);
-        
-            if (_.isEqual(proposalMetadata, this.proposalsData.get(proposalAddress)?.metadata)) return;
-        
-            log(`Proposal metadata at ${this.proposalsData.get(proposalAddress)?.metadata} was changed`);
-        
-            this.proposalsData.set(proposalAddress, {
-              daoAddress: this.proposalsData.get(proposalAddress)?.daoAddress!,
-              proposalAddress: proposalAddress,
-              metadata: proposalMetadata
-            });
-          }));
-        //   await TonVoteSdk.sleep(2000);
-        }                            
-    }
-
     updateProposalsState() {
 
         log(`UpdateProposalsState started`);
@@ -374,6 +375,7 @@ export class Fetcher {
                 this.proposalsByState.ended.add(proposalAddress);
                 this.proposalsByState.pending.delete(proposalAddress);
                 log(`proposal ${proposalAddress} was moved to ended proposals`);
+                this.hasNewEndedProposals = true; // Set flag when proposal moves to ended
             }
         }); 
 
@@ -390,11 +392,13 @@ export class Fetcher {
                 this.proposalsByState.ended.add(proposalAddress);
                 this.proposalsByState.active.delete(proposalAddress);
                 log(`Proposal ${proposalAddress} was moved to ended proposals`);
+                this.hasNewEndedProposals = true; // Set flag when proposal moves to ended
             }
 
         });         
 
-        log(`ProposalsByState: ${JSON.stringify(this.proposalsByState)}`);
+        console.log({pending: this.proposalsByState.pending, active: this.proposalsByState.active, ended: this.proposalsByState.ended});
+
     }    
     
     async fetchMissingData() {
@@ -472,12 +476,13 @@ export class Fetcher {
 
         await processInBatches([...this.proposalsByState.active, ...this.proposalsByState.ended], PROPOSALS_VOTING_DATA_BATCH_SIZE, async (proposalAddr: string) => {
         
-            log(`Fetching voting data for proposal ${proposalAddr}`);
             if (this.proposalsByState.ended.has(proposalAddr) && (proposalAddr in this.fetchUpdate)) {
-                log(`Proposal ${proposalAddr} was ended and already fetched, skipping`);
+                // log(`Proposal ${proposalAddr} was ended and already fetched, skipping`);
                 return;
             }
-            
+
+            log(`Fetching voting data for proposal ${proposalAddr}`);
+
             let proposalData = this.proposalsData.get(proposalAddr);
 
             if (!proposalData) {
@@ -561,6 +566,11 @@ export class Fetcher {
     }
 
     writeEndedProposalToDb() {
+        // Only write if there are new ended proposals
+        if (!this.hasNewEndedProposals) {
+            return;
+        }
+        
         log(`WriteEndedProposalToDb started`);
         
         [...this.proposalsByState.ended].map(proposalAddr => {
@@ -582,9 +592,16 @@ export class Fetcher {
 
         });
 
+        // Reset flag after successful write
+        this.hasNewEndedProposals = false;
     }
 
     writeDaosToDb() {
+        // Only write if there are new DAOs
+        if (!this.hasNewDaos) {
+            return;
+        }
+        
         log(`writeDaosToDb started`);
         
         try {
@@ -600,6 +617,9 @@ export class Fetcher {
             fs.writeFileSync(filePath, jsonString);
             
             log(`successfully saved DAOs data at ${filePath}`);
+            
+            // Reset flag after successful write
+            this.hasNewDaos = false;
         } catch (err) {
             error(`Error writing DAOs to file: ${err}`);
         }
@@ -636,13 +656,9 @@ export class Fetcher {
             
             const startTime = Date.now();
 
-            this.getState();
-
             await this.fetchNewDaos();
                         
             await this.fetchNewProposals();
-
-            // await this.fetchProposalsMetadata();
 
             this.updateProposalsState();
 
@@ -653,7 +669,6 @@ export class Fetcher {
             this.writeEndedProposalToDb();
 
             this.writeDaosToDb();
-
             this.setState();
 
             log(`Stats: ${this.daosData.daos.size} Daos, ${this.proposalsData.size} Proposals`);
