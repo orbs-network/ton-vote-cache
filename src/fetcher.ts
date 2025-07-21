@@ -688,8 +688,8 @@ export class Fetcher {
             await sendNotification(`unexpected error: ${(err as Error).stack}`);
             log(`[Error] ------------------------------------------------------------`);                       
             
-            this.writeEndedProposalToDb();            
-            this.setState();
+            // this.writeEndedProposalToDb();            
+            // this.setState();
 
             // console.log('sleep for 1 min');            
             // TonVoteSdk.sleep(1 * 60 * 1000);
