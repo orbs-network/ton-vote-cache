@@ -1,11 +1,11 @@
 import * as TonVoteSdk from "ton-vote-contracts-sdk";
 import { TonClient, TonClient4 } from "ton";
 import { State } from "./state";
-import { MetadataArgs, DaoRoles, ReleaseMode, VotingPowerStrategyType, getAllNftHolders } from "ton-vote-contracts-sdk";
+import { MetadataArgs, DaoRoles, ReleaseMode, VotingPowerStrategyType } from "ton-vote-contracts-sdk";
 import { DaosData, NftHolders, ProposalsWithMissingData, ProposalsByState, ProposalsData, ProposalFetchingErrorReason, FetcherStatus, ProposalState, OperatingValidatorsInfo } from "./types";
 import dotenv from 'dotenv';
 import _ from 'lodash';
-import { getOrderedDaosByPriority, getProposalState, isValidAddress, processInBatches, replacer, reviver, sendNotification } from "./helpers";
+import { getOrderedDaosByPriority, getProposalState, isValidAddress, processInBatches, replacer, reviver, sendNotification, getAllNftHolders } from "./helpers";
 import fs from 'fs';
 import {log, error} from './logger';
 import fetch from 'node-fetch';
@@ -462,6 +462,8 @@ export class Fetcher {
             log(`ProposalsWithMissingData: ${this.proposalsWithMissingData}`);
             
         }
+
+        log(`FetchMissingData finished`);
     }
 
     // async fetchValidatorsProposalData(proposalData: SingleProposalData) {
@@ -563,6 +565,8 @@ export class Fetcher {
             this.fetchUpdate[proposalAddr] = Date.now();
             return;
         });
+
+        log(`FetchProposalsVotingData finished`);
     }
 
     writeEndedProposalToDb() {
