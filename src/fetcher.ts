@@ -21,6 +21,7 @@ const PROPOSALS_VOTING_DATA_BATCH_SIZE = 1;
 const RELEASE_MODE = Number(process.env.RELEASE_MODE) as ReleaseMode
 
 const TON_VOTE_DB_PATH = process.env.TON_VOTE_DB_PATH || '/tmp/ton-vote-db'
+const TON_CLIENT_V2_ENDPOINT = process.env.TON_CLIENT_V2_ENDPOINT
 const DAOS_DB_FILENAME = 'daos.json'
 const OPERATING_VALIDATORS_ENDPOINT = 'https://single-nominator-backend.herokuapp.com/operatingValidatorsBalance';
 
@@ -64,7 +65,8 @@ export class Fetcher {
               // Initialize TonClient
               // this.client = new TonClient({ endpoint: 'http://107.6.173.98/1/mainnet/toncenter-api-v2/jsonRPC' });
             //   this.client = new TonClient({ endpoint: 'https://toncenter.com/api/v2/jsonRPC' });
-              this.client = await TonVoteSdk.getClientV2();
+              this.client = TON_CLIENT_V2_ENDPOINT ? new TonClient({ endpoint: TON_CLIENT_V2_ENDPOINT }) : await TonVoteSdk.getClientV2();
+
               console.log(`client v2 provider: ${this.client.parameters.endpoint}`);
   
               // Set up the V4 client endpoint
